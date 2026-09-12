@@ -31,6 +31,36 @@ The scene's first frame is also the exported body's rest pose. Changing proporti
 
 The coordinate conversion is native `(x, y, z)` to Blender `(x, -z, y) / 100`. Native animation Y is up. Attack impulses use the separate native physics convention, so do not copy Blender coordinates directly into an impulse table.
 
+## Retarget motion from another Blender armature
+
+`Tools/Animation/RetargetCharacter.py` transfers an evaluated armature animation to the native point rig. Import your donor animation into Blender using its appropriate importer and save a `.blend` first. This tool reads that scene; it does not include FBX import, automatic bone matching, foot locking or a character controller.
+
+Create a JSON mapping with `version: 1` and a `bindings` object. Map **every** native point whose XML `Type` is `Node` to a source pose-bone name. Do not map `MacroNode` or `CenterOfMass` helpers: their positions are calculated from their dependencies. Several points may use the same bone, allowing a rigid body segment to carry multiple landmarks. For example, this fragment shows the format; add the remaining native points before using it:
+
+```json
+{
+  "version": 1,
+  "bindings": {
+    "NElbow_1": "forearm.L",
+    "NElbow_2": "forearm.R"
+  }
+}
+```
+
+Choose a reference frame where the donor's pose is aligned with the native rig's reference pose. The tool calculates a bone-local offset for each native point at that frame. Sampling the reference frame therefore reproduces the native point positions; subsequent evaluated bone transforms carry those offsets. Bone rotation, constraints, object transforms and object animation participate. This preserves the initial SF2 proportions but does **not** guarantee constant edge lengths or planted feet during motion. Align the donor's facing, scale and pose before calibrating, and inspect bends and root travel afterward.
+
+```powershell
+& $blender --background Temp/Donor/donor.blend --python-exit-code 1 --python Tools/Animation/RetargetCharacter.py -- --rig Temp/CharacterCore/models/mdl_skeleton.xml --mapping Temp/Donor/bindings.json --armature Armature --reference-frame 1 --start 1 --end 60 --scale 100 --output Temp/Donor/retargeted
+python Tools/Animation/CharacterPipeline.py validate --rig Temp/CharacterCore/models/mdl_skeleton.xml --animation Temp/Donor/retargeted/retargeted.bytes
+python Tools/Animation/PackageCharacter.py --rig Temp/CharacterCore/models/mdl_skeleton.xml --animation Temp/Donor/retargeted/retargeted.bytes --mod-id local.retarget-preview --output Temp/Donor/local.retarget-preview
+```
+
+`--scale` defaults to **100 native units per Blender unit**. Use `1` for a donor already using Gymnast's native scene scale. The coordinate conversion is `(Blender X, Blender Z, -Blender Y) × scale`; source object/root movement is retained. Start/end frames are inclusive, and the source scene's effective frame rate must be 1–240 fps. The reference frame may be outside the sampled range. The output is baked at 60 fps with `mid_frames = 0`, subject to the same frame/sample limits as the point baker.
+
+The output directory must not exist. It contains `retargeted.bytes`, its rig fingerprint sidecar, sampled `frames.json`, an interactive `preview.html`, and `retarget.json` recording the bindings and sampling settings. Keep the original donor scene separately. Missing bones, incomplete or derived-point bindings, invalid coordinates and singular calibration transforms are rejected. The tool restores the scene's original frame after sampling and does not save or modify the source file.
+
+Blender 3.6.23 tests exercise evaluated bone constraints, translation, calibration offsets, helper nodes, frame-rate conversion and invalid mappings. `Tools/Animation/TestRetargetPipeline.ps1` additionally creates a synthetic donor, retargets the canonical 67-point rig, validates the exported fingerprints, packages the character, executes its real Lua registrations and reads its 61-frame output through the recovered animation reader in Unity 2022.3.62f3. This verifies integration, not humanoid motion quality: arbitrary donor skeletons, deformation and in-game contact quality still require creator validation. See the [Gymnast packaging guide](../gymnast/) for the generated preview mod and multi-clip controls.
+
 ## Add a geometric skin
 
 Place mesh objects in `SF2_Skins`. Apply mesh modifiers before export. Mesh faces are triangulated, and each vertex is attached to four non-coplanar rig landmarks using the native weighted-point calculation. The exporter chooses nearby landmarks automatically. To control an attachment, assign that vertex to exactly four positive vertex groups whose names match rig points. Group membership chooses the landmarks; the exporter computes the attachment weights from the rest pose rather than using the Blender weight values.

@@ -2461,3 +2461,130 @@ Final verification: wiki build passed (140 documented functions, 48 pages, 4076 
 
 - Corrected G02/G03/G04 stale missing/stub claims using current bindings and QuestActionDialogLottery source. Kept paid continuation, concurrency, tutorial/archive breadth and live persistence/visual acceptance explicitly open.
 - Fresh checks: 56 Lua story subscription cases, 29 native-source dojo routing cases, 80 production claim/recovery cases all pass with their documented controlled services. ROADMAP_STATUS now records six reassessed G tracks, not six closed tracks; remaining G/E scope unchanged.
+
+## 2026-09-12: purchase inventory capacity preflight
+
+- Standard purchases check representable inventory counts before affordability and again before charge. Alternate immediate ItemBuyHelper grants use the same bounded increment predicate. Existing parent-item upgrades and delivery actions retain their separate semantics.
+- 59 production dispatcher/affordability/capacity checks pass with controlled roster/grant/UI services; managed Editor compilation passes. Covers exact limits, stale preflight, overflow/no-charge and corrupted negative counts. Generic grant overflow, reentrant transaction reservations, purchase ledger and full-game save acceptance remain open. API remains 0.52.
+- This follow-up is uncommitted after pushed commit 0b334174; no new push performed.
+
+## 2026-09-12: purchase ledger foundation
+
+- Added host-only ModPurchaseLedger in Eclipse.Runtime with a new preserved Unity meta GUID and managed compile inclusion. Separate historical transaction and unit totals, strict bounded XML schema, immutable read totals, conditional-weak profile ownership and scoped reservations. Same-item re-entry across ledger instances is blocked; pending new items reserve capacity; cancellation is read-only and commit validates intervening history before replacing receipts.
+- Thirty-eight compiled runtime ledger checks pass, including reload, independent profiles, limits, cancellation/stale disposal, malformed/duplicate/version data, overflow and full-capacity behavior. Managed Editor build passes.
+- No production purchase hooks or public Lua API yet; native grant/balance/disk settlement and UI enforcement are the next integration requirements. No historical purchases are inferred from inventory. Broad G01-G14/E1-E8 goal remains active; DE port deferred. Changes remain uncommitted.
+
+## 2026-09-12: shared purchase settlement boundary
+
+- Generalized the existing lottery mutation-state name and reused it for internal SettlePurchase orchestration. No second save scheduler: the existing DeferProfileSave and profile bind/unbind guards cover settlement. Callback failure, disk failure and profile-generation changes require reload; no automatic native rollback is claimed.
+- Twenty-four production orchestration plus actual ledger checks pass; services for grant/events/disk are controlled. Existing 80 lottery claim and 17 save-boundary regression checks pass, and managed Editor compilation passes.
+- Shop/alternate acquisition entry points, limit registration/UI and native save/playtest remain unfinished. Internal method is not yet called by production purchase paths; public API stays 0.52. Changes remain uncommitted and goal active.
+
+## 2026-09-12: standard shop purchase settlement integration
+
+- Standard coin/gem/consumable dispatcher now calls SettleItemPurchase after capacity preflight, preserving the original body as ApplyShopPurchase. Recognized active-catalog purchases reserve and settle receipt/balance/inventory through the shared save boundary. Upgrade/delivery/free/payment paths are not misclassified. Bootstrap/unresolved item fallback remains, but cannot bypass a failed/in-progress profile mutation gate.
+- Sixty-two dispatcher/capacity checks and 29 settlement/routing checks pass; managed Editor compilation passes. Grant/catalog/story/disk services are controlled in these fixtures. Public save guide and manual checklist state actual scope and missing acceptance.
+- Alternate immediate helpers, public limits/query/UI and full native save/reload acceptance remain next. API remains 0.52; no DE port. Changes uncommitted.
+
+2026-09-12: Finished alternate immediate purchase settlement integration. TestImmediatePurchases: 32 passed using production methods with controlled services. Updated save guide and acquisition/manual-test notes. No live game acceptance claimed. Public purchase policy expansion deferred to return to character/animation scope.
+
+2026-09-12: Added RetargetCharacter.py: explicit complete native-point to donor-bone mapping, reference-pose offset calibration, evaluated world transforms/constraints, derived helper positions, 60 Hz baking and fingerprint/preview outputs. Real Blender 3.6.23 fixture passes translation, constrained rotation, reference preservation, helpers, resampling, frame restoration and invalid mapping checks. Public authoring/Gymnast guides updated. Automatic matching, foot locking, donor quality and full-game acceptance remain open; this advances E5 without closing it.
+
+2026-09-12: RetargetPipeline integration passed in Blender 3.6.23 and isolated Unity 2022.3.62f3. Synthetic donor -> canonical 67-point rig -> 61-frame native export/sidecar -> character package -> actual Lua map/fight/mode/AI registrations -> recovered native animation reader. Native reader reported 16414 coordinate/structure checks. Fixed documented package destination to match mod ID. This proves the tool chain with a synthetic donor, not arbitrary humanoid retarget quality or full-game combat.
+
+2026-09-12: Audited runtime character-form lifecycle in Model/Fight. Init destroys subsystem/listener/enemy state; equipment animation refresh and style changes are not form swaps. Recorded source-backed preparation, simulation-boundary, identity, registration and acceptance requirements in CHARACTER_FORM_RUNTIME_AUDIT.md. No runtime form capability is claimed. Next seam: simulation owner and between-step replacement, not direct callback-time Init.
+
+2026-09-12: Added host-only Fight transition scheduling after RenderFight and before camera rendering. One request per active living fighter; captures round/model; pause defers; reentrant requests wait; unload cancels exactly once. TestModelTransitionBoundary passes using actual queue/Render methods with controlled services. Managed editor compile passes. No public Lua producer or native replacement yet; next is destination preparation and coordinated model registrations.
+
+2026-09-12: Added hidden PreparedFormModel ownership before fight registration, parameter-container copy and explicit ownership transfer/disposal. Model cleanup tolerates missing objects after partial initialization. TestPreparedFormModel and TestModelTransitionBoundary pass with controlled dependencies; managed editor compile passes. Native model load/replacement integration, state policy and public Lua forms remain open.
+
+2026-09-12: Found native ModelLoader logs missing files and continues. Added form-only required-document preflight before Model construction, including cache load, path-bearing errors, Scene/Figures requirements and empty-composition rejection; optional native empty-model sentinel remains allowed alongside real models. Expanded preparation fixture with actual preflight method and controlled cache. Checks and managed compile pass. Full rig-reference/native-load acceptance and coordinated replacement remain open.
+
+2026-09-12: Fixed native SelectAnimation detachment needed for form replacement: remove eight selector subscriptions, delayed events with removed owner OR target, birth/candidate/trigger references, and aligned condition slot. Unrelated listeners/events preserved. TestAnimationModelRemoval uses actual removal/filter methods with controlled services and passes; managed editor compile passes. Coordinated camera/perk/HUD/fighter replacement remains open.
+
+2026-09-12: Added in-place Camera/Viewer model replacement preserving slot, primary references, index and player focus, transferring renderer listeners and rejecting stale/missing-focus/mismatched replacements. TestCameraModelReplacement passes with production methods and controlled Unity/renderer services; managed compile passes. Actual visibility, interpolation and full form coordinator remain open.
+
+2026-09-12: Added ScreenModel.RefreshForm identity-checked portrait/health/name refresh without Init's style/combo reset and listener registration. Managed compile and 1282 Underworld assertions pass. AuditUnderworld executed but reports missing raid sprite paths; not clean asset acceptance. Live HUD rendering remains unverified. Traced dynamic control-side lookup and separate round/rule parameter references for the upcoming coordinator.
+
+2026-09-12: Added Grid UI Showcase after the user asked how to test grids. Ready-to-open non-combat scene modal with twelve labels, scrolling, hide/disable controls and BACK; no game-state mutations. Updated wiki/examples/manual checklist. Actual example executes in TestModUiUnity: 141 total production hierarchy/input/lifetime checks pass. Full game and physical controller testing remain pending. Earlier form-rule rebind preparation also passes its production-method fixture: RingOut/LoseFall/HotGround cached nodes validate before commit, other-fighter references remain unchanged.
+
+2026-09-12: Added SelectAnimation.ReplaceModel preserving slot and rebuilding condition/listener bindings. Native binding updates affect shared animation node caches by side, so failure attempts to rebind the old active model before propagating. Expanded production-method fixture passes replacement/order/condition/listener and injected binding failure checks; native cache rollback still unverified. Managed compile passes. Full form coordinator remains open.
+
+2026-09-12: Verified production DistancePoint side/child cache update and lookup, including reverse restoration/pivot. Found missing nodes silently bind null; prepared forms now opt into strict named-node binding before cache mutation (Model -> ModelObject -> DistancePoint). Ordinary models preserve behavior. Native cache/prepared ownership fixtures and managed compile pass. Other move/physics references and full coordinator remain open.
+
+2026-09-12: Composed camera, animation and environmental-node changes in reversible FormRenderBindings stage. Commit retains changes; disposal restores registrations; failures attempt remaining restoration and aggregate errors. Production-orchestration fixture, boundary regression and managed compile pass. Not a full state transaction: old selector events are discarded, and participant/perk/visibility/ownership coordination remains open.
+
+Character forms: completed animation pending-event snapshot restoration in the reversible registration stage. Both event queues and birth/created/trigger lists retain record identity and order after reverse registration. TestAnimationModelRemoval, TestFormRenderBindings and TestModelTransitionBoundary pass with extracted production methods and controlled services. No public form producer or full-game form verification yet.
+
+Character forms: implemented reversible enemy targeting exchange, including old/new weapon children, animation/nearest/event targets and AI enemy weapon category; unarmed forms clear stale categories. TestEnemyFormReplacement and managed editor compilation pass. Coordinator integration and full-game collision/perk behavior remain pending.
+
+Character forms: connected surviving fighter/weapon enemy targeting to FormRenderBindings with deduplication, retired-owner exclusion and reverse restoration before selector rollback. Expanded orchestration checks pass for targeting, observer/selector rejection, commit and rollback failures; enemy exchange, animation removal and transition boundary regressions pass. Managed editor compile passes; prepared-form opponent initialization, participant/perk ownership and full-game validation remain pending.
+
+Character forms: added detached perk registration preparation and made AddModel publish only after all trigger construction succeeds. Regression verifies preservation of an existing registration on later-perk failure and no partial fresh registration; managed editor compile passes. Audited queued versus active effects and static namespace action references; active-effect migration remains unfinished.
+
+Queued perk source/target references now participate in FormRenderBindings rollback, preserving timing and excluding active aliases. Production extraction checks and managed compile passed. User steering: added Pulse Guardian, Tactic Gallery and Arena Draft visual examples with original-style UI, distinct native fighters and separate map entries. Initial exact-Lua checks passed 410 assertions; isolated Unity checks passed 219 assertions; wiki build passed 48 pages/4093 links. Full-game combat/controller/save acceptance remains manual; preview render verification underway.
+
+Visual showcase acceptance: rendered and inspected all three native Unity previews. Increased Arena Draft BACK button/root height after preview exposed clipped text; rerender confirms the label fits. Final preview-enabled isolated run passed 219 UI assertions and the shared 410 Lua checks. Preview outputs: Temp/ModUiUnity-03d913ecb1bd43f18c7bd18108af0412. Full-game physical combat/controller/save acceptance is still pending.
+
+Visual examples exposed an initial checkbox graphic mismatch: unchecked default state skipped Unity Toggle.PlayEffect after the graphic was assigned. ModUiView now initializes checkmark alpha immediately. New native assertions reproduced the failure before the fix and pass for initial state and programmatic changes afterward. Preview-enabled Unity run passes 235 assertions plus shared Lua showcase checks; editor compilation and wiki build pass. Inspected corrected Arena Draft preview in Temp/ModUiUnity-292f7b4d95574855b9726148bf89dc29; full-game input acceptance remains pending.
+
+Form effect work: attribute modifiers retain normalized applied deltas, copied independently with ActionPerk; expiry uses the original amount while legacy unrecorded actions retain fallback. Expression preparation precedes mutation. Attribute lifetime, perk preparation and form registration tests plus managed compile pass; character effect migration remains incomplete.
+
+Connected active attribute-effect transfer to FormRenderBindings. Recorded deltas move between separate parameter containers, preserve action identity/timing and support reverse rollback. Production-method tests pass for multiple effects, expiry on the destination and a later overflow restoring earlier transfers; form orchestration and managed compile pass. Other active effect types and participant ownership still prevent claiming complete runtime forms.
+
+Connected active health-effect transfer alongside attribute effects via TransferFormEffects. Source/target references move without an extra tick or timer reset. Extracted production transfer/Render/tick checks pass for damage, healing, original expiry timing, rollback and source-only ownership; attribute and orchestration regressions plus managed compile pass. Full-game forms and remaining effect types remain unfinished.
+
+### 2026-09-12: connect form participant identity
+- Connected active fighter, simulation slot, round/opponent sequence parameters,
+  tactic and shield/Lua instance ownership to the reversible registration stage.
+- Verified production participant binding for both sides with controlled data;
+  form registration and queued-transition regressions plus managed editor compile pass.
+- No public API addition or milestone closure claimed; native form lifecycle and
+  playable transformation remain unfinished.
+
+### 2026-09-12: form combat state and presentation handover
+- Connected input timing, held keys, statistics ownership, cooldowns, control and
+  round counters to the form registration rollback transaction.
+- Connected native HUD and all 13 fight listeners, including restoration after
+  HUD rendering fails. Body-specific input subscribers remain on their own model.
+- New combat-state and presentation fixtures plus form/effect regressions pass;
+  managed editor compile and 1,282 Underworld checks pass. Raid sprite audit still
+  reports existing missing assets. No game playtest or public form API claimed.
+
+### 2026-09-12: preserve applied modifiers during form binding
+- Connected impulse, damage/effect scale, color, slow phase, collision and
+  presentation-action ownership to replacement bodies without resetting timers.
+- Source-only references now follow the participant while preserving the target.
+- Production modifier-copy/dispatch fixture, attribute regression and managed
+  compilation pass. Remaining effects and resource retirement are not complete.
+
+### 2026-09-12: connect queued form host workflow and ownership commit
+- Composed preparation, boundary state capture, registrations, deferred native
+  birth selection, visibility and resource ownership in the host request path.
+- Added retired-body/helper reference preflight and cleanup after commit; rejected
+  and cancelled requests retain or release preparation according to ownership.
+- Production request/commit fixtures, reference-gate and registration/boundary
+  regressions pass with controlled services; managed editor compile passes.
+- No Lua API/native playtest/milestone closure claimed. Remaining effect cases,
+  destination projection and playable example remain work, not excluded scope.
+
+### 2026-09-12: registered character-to-form preparation
+- Connected registered warrior projection, native template parsing and current
+  fight item rules/attributes to the queued form host path.
+- Added owned projected XML and explicit missing-template rejection.
+- Transferred expired action-history attribution without replaying effects;
+  unresolved namespace-only references remain guarded, not silently treated expired.
+- Projection, history/modifier, attribute and request fixtures plus managed editor
+  compilation pass. Lua binding and native gameplay acceptance remain unfinished.
+
+### 2026-09-12: API 0.53 experimental form request and Shifting Guardian
+- Added fighter:change_form with combat.transform, context-owned warrior handles,
+  live queued/applied/failed receipt and instance-wrapper/native host forwarding.
+- Added visually distinct staff-to-baton example and matching editor starter,
+  public reference, manual checklist, generated types and result completions.
+- Fixed the example after actual Lua testing showed sandbox pcall unavailable;
+  expected preparation rejection now returns a failed receipt.
+- Passed 969 Lua showcase checks, 247 isolated Unity UI checks (preview inspected),
+  27 editor tests, LuaLS, VS Code, managed compile and wiki build/link checks.
+- Full native fight/body-swap acceptance and remaining effects are still open.
+  No overall milestone/percentage completion claim; DE port remains deferred.

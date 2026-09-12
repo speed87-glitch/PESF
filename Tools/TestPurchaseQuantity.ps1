@@ -6,6 +6,9 @@ if (!$method) { throw 'Purchase dispatcher not found.' }
 $affordability=[regex]::Match($source,'(?ms)^\tpublic static CheckItems CLKECIFEMNB\(.*?^\t\}(?=\r?\n\r?\n\tinternal static long CalculatePurchaseTotal)').Value
 $total=[regex]::Match($source,'(?ms)^\tinternal static long CalculatePurchaseTotal\(.*?^\t\}').Value
 if (!$affordability -or !$total) { throw 'Purchase affordability methods not found.' }
+$capacity=[regex]::Match($source,'(?ms)^\tprivate static bool HasPurchaseCapacity\(.*?^\t\}').Value
+$increment=[regex]::Match($source,'(?ms)^\tinternal static bool CanIncrementItemCount\(.*?^\t\}').Value
+if (!$capacity -or !$increment) { throw 'Purchase capacity methods not found.' }
 $fixture=Join-Path $root ('Temp/PurchaseQuantity-'+[Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $fixture -Force | Out-Null
 # Execute the production dispatcher; currency persistence, grant and UI are controlled.
@@ -14,9 +17,9 @@ using System;
 enum ItemAction { Item_Buy_Gold,Item_Upgrade_Gold,Item_Buy_Ruby,Item_Upgrade_Ruby,Item_Buy_Real,Item_Free,Item_Consumable,Item_Delivery_Ruby,Item_Recipe_Delivery_Ruby,Item_Order_Ruby,Item_Recipe }
 enum BKDHBIDPKLK { CHECK_ITEM_NONE,CHECK_ITEM_LEVEL,CHECK_ITEM_MONEY,CHECK_ITEM_BONUS,CHECK_ITEM_NO_NETWORK,CHECK_ITEM_MATERIALS }
 class CheckItems { public BKDHBIDPKLK Type; public long Value; }
-class ItemInfo { public string Type="Consumable"; public long Price=1; public long KLHOKKPALOK=0; public int MHGODOLNDLE=0; public long OHBBLIMNIMJ()=>Price; public long MCNMMBCJADI()=>Price; }
+class ItemInfo { public string Type="Consumable",Name="fixture"; public ItemInfo ParentItem=null; public long Price=1; public long KLHOKKPALOK=0; public int MHGODOLNDLE=0; public long OHBBLIMNIMJ()=>Price; public long MCNMMBCJADI()=>Price; }
 struct ObscuredLong { long n; public static explicit operator ObscuredLong(long n)=>new ObscuredLong{n=n}; public static implicit operator long(ObscuredLong n)=>n.n; }
-class UserItem {}
+class UserItem { public int Count; public int OFOPFCJNEBL()=>Count; }
 class Recipe { public bool IHHJGMBGHEB(UserItem i)=>true; }
 class RecipeItemInfo:ItemInfo { public Recipe OIMGNCLBPHD()=>new Recipe(); public UserItem MFEAIEJFDAM()=>new UserItem(); }
 static class SystemProperties { public static bool PKLFCFBEIIG()=>true; }
@@ -30,8 +33,13 @@ class Roster {
 static class GameUtils { public static void OFOKPNFGDMD(string s) {} }
 static class MenuController { public static void IAMGKKOINFC() {} }
 static class LLLOJBFMONN { public static void Error(string s,object o) { throw new Exception(s); } }
+namespace Eclipse.Modding { static class ModRuntime {
+ public static int Settlements,Quantity; public static bool Reject;
+ public static bool SettleItemPurchase(ItemInfo item,int quantity,Func<bool> apply){Settlements++;Quantity=quantity;return !Reject && apply();}
+} }
 static class Program {
  public static int Writes,Granted; public static long Balance=100; static int checks;
+ static UserItem Existing=null; static UserItem CMGOCLGHNLH(string name)=>Existing;
  static Quests ELEBLBJKDBI()=>new Quests();
  static Roster CCDKHLAMKKO()=>new Roster();
  static void MBBMOKFGABP(ItemInfo i){} static void BLNHEMCHIGF(ItemInfo i,bool b){}
@@ -42,6 +50,8 @@ static class Program {
 __METHOD__
 __TOTAL__
 __AFFORDABILITY__
+__CAPACITY__
+__INCREMENT__
  static void Check(bool b,string s){checks++;if(!b)throw new Exception(s);}
  static void Main(){
   foreach(var action in new[]{ItemAction.Item_Buy_Gold,ItemAction.Item_Buy_Ruby,ItemAction.Item_Consumable}){
@@ -75,11 +85,33 @@ __AFFORDABILITY__
   Check(CLKECIFEMNB(new ItemInfo(),ItemAction.Item_Buy_Gold,-1).Value==-1,"Negative quantity passed affordability");
   Balance=long.MinValue;
   Check(CLKECIFEMNB(new ItemInfo{Price=1},ItemAction.Item_Buy_Gold).Value==-1,"Invalid balance overflowed into affordability");
+  Balance=long.MaxValue;
+  foreach(var action in new[]{ItemAction.Item_Buy_Gold,ItemAction.Item_Buy_Ruby,ItemAction.Item_Consumable}){
+   Existing=new UserItem{Count=int.MaxValue-2}; Writes=Granted=0;
+   Check(CLKECIFEMNB(new ItemInfo(),action,2).Value>=0,"Exact inventory capacity rejected");
+   Check(CLKECIFEMNB(new ItemInfo(),action,3).Value==-1,"Overflow inventory passed affordability");
+   Check(!KCBCGDFKNME(new ItemInfo(),action,50,3) && Writes==0 && Granted==0,"Overflow inventory charged or granted");
+   Check(KCBCGDFKNME(new ItemInfo(),action,50,2) && Granted==2,"Exact capacity dispatch failed");
+   Existing.Count=int.MaxValue; Writes=Granted=0;
+   Check(!KCBCGDFKNME(new ItemInfo(),action,50) && Writes==0,"Count changed after affordability bypassed dispatch check");
+  }
+  Existing=new UserItem{Count=-1};
+  Check(CLKECIFEMNB(new ItemInfo(),ItemAction.Item_Buy_Gold).Value==-1,"Corrupt inventory count accepted");
+  Existing=new UserItem{Count=int.MaxValue};
+  Check(HasPurchaseCapacity(new ItemInfo{ParentItem=new ItemInfo()},ItemAction.Item_Upgrade_Gold,1),"Upgrade was treated as another base-item copy");
+  Check(HasPurchaseCapacity(new ItemInfo(),ItemAction.Item_Delivery_Ruby,1),"Delivery was treated as acquisition");
+  Check(!CanIncrementItemCount(int.MaxValue,1) && CanIncrementItemCount(int.MaxValue-1,1),"Single-item alternate purchase boundary failed");
+  Existing=null;Writes=Granted=0;Eclipse.Modding.ModRuntime.Reject=true;
+  Check(!KCBCGDFKNME(new ItemInfo(),ItemAction.Item_Consumable,50,4) && Writes==0 && Granted==0,"Settlement rejection did not prevent native purchase");
+  Eclipse.Modding.ModRuntime.Reject=false;Eclipse.Modding.ModRuntime.Settlements=0;
+  Check(KCBCGDFKNME(new ItemInfo(),ItemAction.Item_Buy_Ruby,50,4) && Eclipse.Modding.ModRuntime.Settlements==1 && Eclipse.Modding.ModRuntime.Quantity==4,"Purchase did not route quantity to settlement exactly once");
+  Eclipse.Modding.ModRuntime.Settlements=0;
+  Check(KCBCGDFKNME(new ItemInfo{ParentItem=new ItemInfo()},ItemAction.Item_Upgrade_Gold,50) && Eclipse.Modding.ModRuntime.Settlements==0,"Upgrade was recorded as a new purchase");
   Console.WriteLine("Purchase quantity and affordability: "+checks+" checks passed (controlled currency/grant/UI services).");
  }
 }
 '@
-$code.Replace('__METHOD__',$method).Replace('__TOTAL__',$total).Replace('__AFFORDABILITY__',$affordability) | Set-Content -Encoding utf8 (Join-Path $fixture 'Program.cs')
+$code.Replace('__METHOD__',$method).Replace('__TOTAL__',$total).Replace('__AFFORDABILITY__',$affordability).Replace('__CAPACITY__',$capacity).Replace('__INCREMENT__',$increment) | Set-Content -Encoding utf8 (Join-Path $fixture 'Program.cs')
 '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>' | Set-Content -Encoding utf8 (Join-Path $fixture 'Check.csproj')
 dotnet run --project (Join-Path $fixture 'Check.csproj')
 if ($LASTEXITCODE -ne 0) { throw 'Purchase quantity regression failed.' }

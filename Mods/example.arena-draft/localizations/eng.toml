@@ -1,0 +1,9 @@
+trial = "Arena Draft"
+trial.description = "Draft an opponent, choose the timer and level, then fight your selection."
+fighter = "Trial fighter"
+
+zones/trial = "Arena Draft"
+
+fighter.1 = "Wayfarer"
+fighter.2 = "Needlehand"
+fighter.3 = "Storm Ronin"

@@ -525,6 +525,37 @@ public class Camera : global::EventDispatcher<object>
 		return result;
 	}
 
+    internal bool ReplaceModel(Model expected, Model replacement, bool player)
+    {
+        if (expected == null || replacement == null || BMBGCIEFJGB == null || _models.Contains(replacement)) return false;
+        int index = _models.IndexOf(expected);
+        if (index < 0 || replacement.CLDMEJKGLBA() == null) return false;
+        ModelNode focus = null, secondaryFocus = null;
+        if (player)
+        {
+            focus = replacement.CLDMEJKGLBA().EGHIDHMENEF(GameUtils.LEPANPKBBKI().MNDFNOCCOKI);
+            secondaryFocus = replacement.CLDMEJKGLBA().EGHIDHMENEF(GameUtils.LEPANPKBBKI().MEIHGLKHLFC);
+            if (focus == null || secondaryFocus == null) return false;
+        }
+        BMBGCIEFJGB.CDDKOOMODHG(replacement);
+        bool replaced = false;
+        try
+        {
+            replaced = BMBGCIEFJGB.FPNKBJPKKGB().ReplaceModel(index, expected.CLDMEJKGLBA(),
+                replacement.CLDMEJKGLBA(), _location.modelsColor);
+            if (!replaced) return false;
+        }
+        finally
+        {
+            if (!replaced) BMBGCIEFJGB.NAKJKHLEAEB(replacement);
+        }
+        BMBGCIEFJGB.NAKJKHLEAEB(expected);
+        _models[index] = replacement;
+        replacement.Index = expected.Index;
+        if (player) { CIJJBMDDAFL = focus; BGFPBMFKFGJ = secondaryFocus; }
+        return true;
+    }
+
 	public void FIEBIONJCCI(GameUtils.HitEffect HJLADIDMFOM)
 	{
 		if (HJLADIDMFOM != null)

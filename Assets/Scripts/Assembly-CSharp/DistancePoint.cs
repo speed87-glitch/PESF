@@ -193,6 +193,13 @@ public class DistancePoint
 
 	public void UpdateNode(ModelObject OECPEDPMKCD, bool EKBOGDKIHIH, ModelNode AECCPADGGPG, bool PHADJMAONJG, ModelObject MJCGOJBGFIE)
 	{
+        ModelNode resolved = null;
+        if (HLGJJGHDEAP == JJIAEPLMBFF.OBJECT_NODES)
+        {
+            resolved = OECPEDPMKCD.EGHIDHMENEF(Part);
+            if (resolved == null && OECPEDPMKCD.RequireCompleteNodeBindings)
+                throw new System.InvalidOperationException("Prepared form is missing animation node: " + Part);
+        }
 		PointNode bKHJJICJODB = null;
 		if (PHADJMAONJG)
 		{
@@ -220,7 +227,7 @@ public class DistancePoint
 		}
 		if (HLGJJGHDEAP == JJIAEPLMBFF.OBJECT_NODES)
 		{
-			bKHJJICJODB.Node = OECPEDPMKCD.EGHIDHMENEF(Part);
+			bKHJJICJODB.Node = resolved;
 		}
 		bKHJJICJODB.CHEKEGGJDBL = AECCPADGGPG;
 	}

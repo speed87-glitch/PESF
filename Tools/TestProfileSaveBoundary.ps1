@@ -33,7 +33,7 @@ static class XmlUtils {
  /* WRITE */
  /* READ */
 }
-namespace Eclipse.Modding {static class ModRuntime {static int _lotterySaveState=0; /* ADAPTERS */ }}
+namespace Eclipse.Modding {static class ModRuntime {static int _profileMutationState=0; /* ADAPTERS */ }}
 class Program {
  public bool GJEJCLBAPMP=true;public XmlDocument IEDEFCBFJAD;
  public Program CCDKHLAMKKO()=>this;public void KGFJPLKOABI(){} public void PMIIHIFGIIN(){}

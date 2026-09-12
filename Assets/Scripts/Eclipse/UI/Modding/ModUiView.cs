@@ -191,6 +191,10 @@ namespace Eclipse.UI.Modding
                 view.Control = view.Toggle;
                 view.Toggle.targetGraphic = background; view.Toggle.graphic = check;
                 view.Toggle.toggleTransition = Toggle.ToggleTransition.None;
+                // The component enabled before its graphic was assigned. Unity's
+                // unchanged-value setter skips PlayEffect, so initialize the mark
+                // now instead of waiting for Start or the first user toggle.
+                check.canvasRenderer.SetAlpha(view.Toggle.isOn ? 1 : 0);
                 var hit = rect.gameObject.AddComponent<Image>(); hit.color = Color.clear;
                 var label = Rect("Label", rect, 0, 0); Stretch(label);
                 label.offsetMin = new Vector2(size + 8, 0);

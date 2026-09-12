@@ -371,3 +371,55 @@ end,
 ```
 
 `event.player_result` is `"win"`, `"loss"`, `"surrender"`, or `"timeout"`. `event.won` is relative to the callback's fighter. Use `event.won` to count that fighter's victories; do not equate every end event with a win.
+
+## fighter:change_form
+
+**Signature:** `local request = fighter:change_form(character)`
+
+**Returns:** A live result table with `status = "queued"`. At the simulation
+boundary, status becomes `"applied"` or `"failed"`; failures include an `error`
+string. Preparation errors or duplicate requests return an already failed result.
+Invalid handles or missing capabilities raise a Lua error. Treat result fields as game-owned
+observations. Keep this table in temporary Lua memory, not a saved state schema.
+
+**When:** Inside an active combat behavior callback, from API **0.53**. The change
+applies after the current simulation step. Pause delays application. Round end,
+death or unloading fails a pending request. Fighter handles still expire at the
+end of their callback; retaining this result does not extend their lifetime.
+
+**Requires:** `combat.transform` and a handle returned by this mod's
+`sf2.warriors.register`. This changes the callback's fighter. It is not exposed on
+`fighter.opponent`; use an opponent-targeted rule to transform an opponent.
+Only one request can be pending per fighter.
+
+The new character supplies the body, equipment and native tactic. The swap
+preserves health percentage, round wins, position, input timing, cooldowns,
+combat statistics and supported ongoing effects. It queues native birth
+selection, without restarting the fight/round or editing saved player equipment.
+It does not resume an in-progress attack across different rigs.
+
+**Verification limit:** Lua/managed fixtures cover request lifetime and host
+handover; full-game form acceptance remains pending. Untransferred effects,
+including active stolen magic, can currently fail the request before retirement.
+Check the result rather than treating `queued` as success.
+
+```lua
+-- second_form is a warrior handle registered before these callbacks run.
+local pending
+local requested = false
+local behavior = sf2.behaviors.register {
+    id = "transform",
+    on_round_begin = function() pending, requested = nil, false end,
+    on_tick = function(_, fighter)
+        if not requested then
+            requested = true
+            pending = fighter:change_form(second_form)
+        elseif pending and pending.status == "failed" then
+            -- Display pending.error in your HUD; avoid retrying every frame.
+            pending = nil
+        elseif pending and pending.status == "applied" then
+            pending = nil
+        end
+    end,
+}
+```

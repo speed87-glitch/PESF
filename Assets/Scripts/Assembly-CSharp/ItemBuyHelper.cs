@@ -4,9 +4,23 @@ using Nekki.Utils;
 
 public static class ItemBuyHelper
 {
+	private static bool SettleImmediatePurchase(ItemInfo item, bool gems, System.Func<bool> apply)
+	{
+		if (item == null) return false;
+		Roster roster = ListSF.CCDKHLAMKKO();
+		if (roster == null) return false;
+		long price = gems ? (long)item.FMHECGHHKGB : (long)item.KJFAOKLILOC;
+		long balance = gems ? roster.EHFJHFDACMP() : roster.BFBOEGMAMNF();
+		if (price < 0 || balance < price) return false;
+		UserItem existing = roster.KHCNHPCPFII().CMGOCLGHNLH(item);
+		if (!ListSF.CanIncrementItemCount(existing == null ? 0 : existing.OFOPFCJNEBL(), 1)) return false;
+		return Eclipse.Modding.ModRuntime.SettleItemPurchase(item, 1, apply);
+	}
+
 	private static bool KCBCGDFKNME(ItemInfo item)
 	{
 		UserItem dKCHDHMLKHN = ListSF.CCDKHLAMKKO().KHCNHPCPFII().CMGOCLGHNLH(item);
+		if (!ListSF.CanIncrementItemCount(dKCHDHMLKHN == null ? 0 : dKCHDHMLKHN.OFOPFCJNEBL(), 1)) return false;
 		if (dKCHDHMLKHN == null)
 		{
 			XmlNode fMBDAPOMFGN = ListSF.CCDKHLAMKKO().BABKABBEFEL();
@@ -73,6 +87,11 @@ public static class ItemBuyHelper
 
 	public static bool IHHKNBPKGHD(ItemInfo item)
 	{
+		return SettleImmediatePurchase(item, false, () => ApplyImmediateCoinPurchase(item));
+	}
+
+	private static bool ApplyImmediateCoinPurchase(ItemInfo item)
+	{
 		if (item == null)
 		{
 			return false;
@@ -97,6 +116,11 @@ public static class ItemBuyHelper
 	}
 
 	public static bool MGMAJHLAICA(ItemInfo item)
+	{
+		return SettleImmediatePurchase(item, true, () => ApplyImmediateGemPurchase(item));
+	}
+
+	private static bool ApplyImmediateGemPurchase(ItemInfo item)
 	{
 		if (item == null)
 		{
@@ -224,6 +248,11 @@ public static class ItemBuyHelper
 	}
 
 	public static bool NIEAANPCGLC(ItemInfo item)
+	{
+		return SettleImmediatePurchase(item, true, () => ApplyImmediateConsumablePurchase(item));
+	}
+
+	private static bool ApplyImmediateConsumablePurchase(ItemInfo item)
 	{
 		if (item == null)
 		{

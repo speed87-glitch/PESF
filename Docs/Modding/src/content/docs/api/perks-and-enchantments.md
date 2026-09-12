@@ -7,6 +7,12 @@ A **perk** is an ability definition used by learned player abilities or opponent
 loadouts. An **enchantment** is an equipment effect available through a forge
 recipe. Both can reuse the same behavior with different parameter values.
 
+For native template-backed attribute modifiers, expiry removes the normalized
+amount originally applied. It does not reevaluate the attribute expression against
+later combat state. For example, a temporary +12 modifier removes 12 even if its
+expression would now evaluate to 30; unrelated attribute changes remain intact.
+This bookkeeping does not provide runtime character-form switching.
+
 The examples below assume `sf2` is loaded, the localization keys exist, and
 `opening_charge` is the behavior created in [Reusable behaviors](../behavior-instances/).
 

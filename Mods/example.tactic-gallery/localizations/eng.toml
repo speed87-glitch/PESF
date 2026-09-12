@@ -1,0 +1,7 @@
+trial = "Tactic Gallery"
+trial.description = "Patient kicks, evasive footwork, alternating strikes, and a reactive guardian."
+zones/trial = "Tactic Gallery"
+fighter.1 = "Patient Gatekeeper"
+fighter.2 = "Footwork Sentinel"
+fighter.3 = "Alternating Warden"
+fighter.4 = "Reactive Guardian"

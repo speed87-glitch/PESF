@@ -139,6 +139,16 @@ namespace Nekki.SF2.GUI.Fight
 			_Avatar.SetNativeSize();
 		}
 
+        internal bool RefreshForm(ModelParameters expected, ModelParameters replacement)
+        {
+            if (expected == null || replacement == null || _parameters != expected) return false;
+            _parameters = replacement;
+            LOPIGAFLGDB();
+            COHCIHCLGKE();
+            APBGNJEHODB();
+            return true;
+        }
+
 		private void COHCIHCLGKE()
 		{
 			if (_raidShields != null)

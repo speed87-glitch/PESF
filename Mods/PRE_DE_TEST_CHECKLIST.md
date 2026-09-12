@@ -509,6 +509,12 @@ Lottery artwork: check the saved slot or first-item icon preserves aspect ratio,
 
 ### Custom UI grids (API 0.43)
 
+- Ready-to-open test: enable Grid UI Showcase (`example.grid-ui`), restart and
+  enter map/shop/profile/dojo. Its modal opens automatically, not as a map battle.
+  Twelve choices fill three columns with scrolling. HIDE BLADE tests layout
+  compaction; DISABLE SPEAR tests skipped focus; BACK closes. Enter another scene
+  to reopen. Disable competing auto-opening examples during this test.
+
 - Use the wiki's Grid layouts example with ui.create and API >=0.43. Check the
   six buttons form two rows of three with the original game font/button textures.
 - Select cells by pointer, Tab/Shift+Tab, arrows and D-pad/stick. Arrows should move
@@ -610,3 +616,43 @@ Automated innate execution check: run `pwsh -NoProfile -File Tools/TestModInnate
 - [ ] API >=0.52: use items.set_tactic_subtype on a core weapon; start a new fight and verify AI grouping independently of animation subtype. Try group empty to select subtype fallback. Disable and Apply & Restart to restore the original group. Two mods targeting the same weapon should report a conflict. Existing fight copies are not refreshed.
 
 - [ ] Buy multiple units through a supported consumable/shop quantity flow: granted quantity must match the selected quantity and charge. Default single-unit purchases should behave as before. Automated dispatcher check: `pwsh -NoProfile -File Tools/TestPurchaseQuantity.ps1`; real inventory/save behavior still needs a playtest.
+
+- [ ] On a disposable test profile, attempt a multi-unit purchase near the Int32 inventory limit: an exact fit succeeds; an overflow attempt must leave balance and inventory unchanged. Upgrade/delivery operations must not be blocked merely because base-item count is at capacity. Automated preflight/dispatch checks run through TestPurchaseQuantity; full persistence remains a manual check.
+
+- [ ] With an active mod runtime, purchase a catalog-recognized item through the standard shop, save/reload and verify balance/count remain correct; a later purchase must retain earlier receipt totals. Upgrade/delivery should not add purchase receipts. Use a disposable profile for interruption testing. Alternate immediate helpers are not covered yet.
+
+Immediate purchase acceptance: exercise alternate coin, gem and consumable purchases with a recognized catalog item; verify one grant and one transaction/unit receipt, remaining funds, perk-reset/currency effects, then save/reload. Insufficient funds and full inventory must change neither balance nor history. Tools/TestImmediatePurchases.ps1 passes 32 controlled-service checks; live acceptance remains pending.
+
+Retarget creator acceptance: run Tools/Animation/TestRetargetPipeline.ps1 for the canonical export/package/native-reader integration. Then use an actual animated donor with explicit bindings and a calibrated reference pose; inspect facing, both mirrored sides, joint separation, root travel, equipment attachment, contact timing and interruption in game. Automated synthetic-donor integration passes; actual donor/game acceptance remains pending.
+
+## Visual gameplay showcases
+
+Enable a showcase with Apply & Restart, enter the map, then select its named page
+using the bottom dots. These are separate battles, not the Act 1 third tournament
+fight. Disable auto-opening UI examples if they obscure the map.
+
+- [ ] Pulse Guardian: attack during SHIELD UP (no health loss, Stopped rises), then
+  during SHIELD DOWN (normal damage, Landed rises). Check repeat cycle, pause and
+  HUD cleanup after leaving/completing the fight.
+- [ ] Tactic Gallery: defeat each of four distinct opponents. Compare the live
+  requested-action label against patient kicks, near/far footwork, alternating
+  kicks and reactive retreat during attack windows. A request need not land.
+- [ ] Arena Draft: choose a sais/nunchaku opponent, Veteran and 90 seconds. Confirm
+  the actual fighter and timer match; win to draft again. BACK must cancel, and a
+  saved prepared encounter must resume without rerolling on reload.
+- [ ] Check all three at the normal game resolution with mouse/keyboard and a
+  physical controller. Text must fit and original-style assets must load.
+
+Detailed steps are in each example's README. Automated commands:
+Tools/TestVisualExamples.ps1 and Tools/TestModUiUnity.ps1 (-WithPreview renders
+standalone menu/HUD screenshots in the fixture directory). Controlled combat and
+isolated UI checks do not replace the full-game acceptance above.
+
+## Shifting Guardian / API 0.53 (native acceptance pending)
+- Enable example.shifting-guardian, Apply & Restart; choose Shifting Guardian on map zone dots.
+- FIGHT: after three seconds, require both BATON FORM HUD and actual changed weapon/name.
+- Check combat continues, timer does not reset, and damaged health percentage is retained.
+- Pause before application: no paused-time swap; resume and check completion.
+- End round early or leave fight: pending request fails/cancels; HUD closes without errors.
+- Replay: countdown and transformation reset. Record any Failed message as a failed case.
+- Repeat with active modifiers; stolen magic/unresolved effects remain known unsupported cases.

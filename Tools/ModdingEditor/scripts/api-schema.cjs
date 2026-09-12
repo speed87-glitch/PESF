@@ -49,6 +49,7 @@ type('CombatSnapshot', {self:E('FighterSnapshot'),'opponent?':E('FighterSnapshot
 type('ResolvingFighter',{},'Fighter');
 type('OutgoingFighter',{},'Fighter');
 const fighterMethods = {
+    change_form:{params:{character:H('Warrior')},returns:E('FormRequest'),capability:'combat.transform'},
     snapshot:{params:{},returns:`${E('CombatSnapshot')}|nil`,capability:null},
     change_health:{params:{amount:'number'},capability:'combat.change_life'},
     add_magic_charge:{params:{amount:'number'},capability:'combat.magic_charge'},
@@ -57,6 +58,7 @@ const fighterMethods = {
     add_damage_shield:{params:{key:'string',fraction:'number',frames:'integer'},capability:'combat.effects'},
     remove_damage_shield:{params:{key:'string'},capability:'combat.effects'},
 };
+type('FormRequest',{status:enumOf('queued','applied','failed'),'error?':'string'});
 const equipment = { id:'string', display_name:H('Localization'), icon:H('Sprite'), model:H('Model') };
 for (const name of ['Weapon','Armor','Helm','Ranged','Magic']) {
     type(`${name}Definition`, { ...equipment, ...(name === 'Weapon' ? {'subtype?':['string','Defaults to Katana. Match the model and move family.'], 'tactic_subtype?':['string','API 0.51: optional AI table group, defaults to subtype. 1-128 ASCII letters, digits or underscores.']} : ['Ranged','Magic'].includes(name) ? {subtype:'string'} : {}) });

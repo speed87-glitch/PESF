@@ -617,6 +617,12 @@ public class ModelAi
 		HCJOIHLKOKJ = AiData.GetItemEquivalent(PPIEODBOOJA);
 	}
 
+    internal System.Action CaptureEnemyWeapon()
+    {
+        var weapon = HCJOIHLKOKJ;
+        return () => HCJOIHLKOKJ = weapon;
+    }
+
 	public void SetWeaponBot(string PPIEODBOOJA)
 	{
 		EIMKBOMDAAE = AiData.GetItemEquivalent(PPIEODBOOJA);

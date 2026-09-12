@@ -82,6 +82,14 @@ supported yet.
 
 ### Grid layouts
 
+For a ready-to-open test, enable **Grid UI Showcase** (`example.grid-ui`) from
+`Mods/example.grid-ui`, restart Eclipse and enter the map, shop, profile or dojo.
+Its modal opens automatically; there is no map battle to select. It contains
+twelve sample equipment buttons in three columns, scrolling, a selected-name
+label and HIDE BLADE / DISABLE SPEAR controls. BACK or Escape closes it; enter
+another non-combat scene to reopen. Disable other auto-opening UI examples while
+testing. It selects labels only and does not change equipment or saves.
+
 API **0.43** adds fixed-column grids for equipment, character and reward selectors.
 A grid arranges existing widgets, so buttons and labels retain the original game
 sprites and font. A cell may also be a column or stack containing artwork and a
@@ -181,6 +189,9 @@ and `fill_color` applies to sliders. Map normalized slider values to meaningful
 units in ordinary Lua, for example `seconds = 10 + value * 50`.
 
 ## sf2.ui.set_checked
+
+The checkmark reflects the authored `checked` value from the initial mount,
+including unchecked toggles. Programmatic changes update the checkmark immediately.
 
 **Signature:** `sf2.ui.set_checked(view, widget_id, checked)`
 

@@ -172,6 +172,12 @@ async function main() {
         return ['health','max_health','health_bars','position'].every(name=>found.includes(name));
     }, 'snapshot return type inference');
     console.log('PASS: combat snapshot return type and fighter fields complete');
+    const formReceipt = probe('form-receipt.lua', 'local sf2=require("sf2")\nlocal form=sf2.warriors.register { id="form" }\nsf2.behaviors.register { id="shift", on_tick=function(_, fighter)\n local result=fighter:change_form(form)\n local value=result.|\nend }');
+    await until(async () => {
+        const found=labels(await request('textDocument/completion',formReceipt));
+        return ['status','error'].every(key=>found.includes(key));
+    }, 'form request result fields');
+    console.log('PASS: form request completion fields infer from fighter method');
 
     const validText = fs.readFileSync(path.join(root, 'templates/weapon/scripts/main.lua'), 'utf8');
     // LuaLS does not publish an initial empty report. Introduce an error, then

@@ -66,6 +66,19 @@ public class ModelController : global::EventDispatcher<object>
 		return AOFMFOHIKHF;
 	}
 
+    // Move held keys and combo timing without replaying input or exchanging
+    // event subscribers, which are bound to each body's animation controller.
+    internal void ExchangeFormInput(ModelController other)
+    {
+        if (other == null || other == this)
+            throw new System.ArgumentException("Form input requires distinct controllers.");
+        (KNKFKGPKBPK, other.KNKFKGPKBPK) = (other.KNKFKGPKBPK, KNKFKGPKBPK);
+        (LICAFNLFJHO, other.LICAFNLFJHO) = (other.LICAFNLFJHO, LICAFNLFJHO);
+        (AOFMFOHIKHF, other.AOFMFOHIKHF) = (other.AOFMFOHIKHF, AOFMFOHIKHF);
+        (JKLJBOOOKOP, other.JKLJBOOOKOP) = (other.JKLJBOOOKOP, JKLJBOOOKOP);
+        (MDAFKNLGJBJ, other.MDAFKNLGJBJ) = (other.MDAFKNLGJBJ, MDAFKNLGJBJ);
+    }
+
 	public void IPGLLIAHDPE(KeyData value)
 	{
 		AOFMFOHIKHF = value.Copy();

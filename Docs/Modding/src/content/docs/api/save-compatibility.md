@@ -151,3 +151,9 @@ The save records mod versions and content metadata for diagnostics. Changes to t
 Owned weapon `tactic_subtype` (API 0.51) participates in the content fingerprint when specified. Changing the AI group is a content change; omitting the field preserves the previous weapon fingerprint format and subtype fallback.
 
 Weapon AI group overrides through `items.set_tactic_subtype` (API 0.52) record the target, owner and group in the fingerprint. An empty group is an explicit subtype fallback and differs from no override.
+
+### Recorded shop purchase history
+
+The standard coin, gem and consumable shop dispatcher and the three alternate immediate coin, gem and consumable purchase helpers record recognized item purchases in profile metadata while a mod runtime/profile is active. Immediate purchases check affordability and inventory capacity before entering settlement. Each receipt tracks completed transactions and purchased units separately from current inventory. The receipt is included with the final balance/inventory snapshot; intermediate save requests are deferred. A partial settlement failure blocks later saves in that live profile until reload.
+
+This is host bookkeeping, not a public purchase-limit or history-query API. It does not infer purchases made before recording began, and does not cover free grants, external payments, upgrades or deliveries. Bootstrap and unresolved legacy item identities retain their original path without invented receipts. Full-game save/reload acceptance remains pending; do not edit receipt metadata manually.

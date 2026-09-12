@@ -5,6 +5,7 @@ using UnityEngine;
 
 public class Model : global::EventDispatcher<object>
 {
+    internal bool RequireCompleteNodeBindings;
 	private readonly Dictionary<string, int> _transientPerkFlags = new Dictionary<string, int>();
 
 	public void AddTransientPerkFlag(string name, int frames)
@@ -1529,6 +1530,71 @@ public class Model : global::EventDispatcher<object>
 		return _ModelObject;
 	}
 
+    internal System.Action CopyFormModifiersFrom(Model source)
+    {
+        if (source == null || source == this)
+            throw new System.ArgumentException("Form modifiers require distinct models.");
+        var impulse = ODCOKJKEDOJ;
+        var hitScale = HNILMKEAMAE;
+        var addedDamage = DIKMCKLIEBK;
+        var color = _perkColor;
+        var slow = _perkSlowFactor;
+        var slowFrame = _perkSlowFrame;
+        var collision = _perkCollisionDisabled;
+        System.Action restore = () =>
+        {
+            ODCOKJKEDOJ = impulse;
+            HNILMKEAMAE = hitScale; DIKMCKLIEBK = addedDamage;
+            _perkSlowFactor = slow; _perkSlowFrame = slowFrame;
+            _perkCollisionDisabled = collision;
+            set_color(color);
+        };
+        try
+        {
+            ODCOKJKEDOJ = new Vector3f(source.ODCOKJKEDOJ);
+            HNILMKEAMAE = source.HNILMKEAMAE; DIKMCKLIEBK = source.DIKMCKLIEBK;
+            _perkSlowFactor = source._perkSlowFactor; _perkSlowFrame = source._perkSlowFrame;
+            _perkCollisionDisabled = source._perkCollisionDisabled;
+            set_color(source._perkColor);
+        }
+        catch { restore(); throw; }
+        return restore;
+    }
+
+    // This stage preserves participant history and input, while each body keeps
+    // its own animations, physics, AI and event subscriptions. Calling the
+    // returned action before another simulation step restores both owners.
+    internal System.Action TransferFormCombatState(Model replacement)
+    {
+        if (replacement == null || replacement == this || DKFGOHCNIKL == null || replacement.DKFGOHCNIKL == null)
+            throw new System.ArgumentException("Form combat state requires initialized distinct models.");
+        ExchangeFormCombatState(replacement);
+        bool restored = false;
+        return () =>
+        {
+            if (restored) return;
+            restored = true;
+            ExchangeFormCombatState(replacement);
+        };
+    }
+
+    private void ExchangeFormCombatState(Model other)
+    {
+        FEHOHLMIEBP.ExchangeFormInput(other.FEHOHLMIEBP);
+        (_Statistics, other._Statistics) = (other._Statistics, _Statistics);
+        (DKFGOHCNIKL, other.DKFGOHCNIKL) = (other.DKFGOHCNIKL, DKFGOHCNIKL);
+        DKFGOHCNIKL.RebindFormOwner(this);
+        other.DKFGOHCNIKL.RebindFormOwner(other);
+        (MDFEHKBOHEL, other.MDFEHKBOHEL) = (other.MDFEHKBOHEL, MDFEHKBOHEL);
+        (HCPHOJKFIDM, other.HCPHOJKFIDM) = (other.HCPHOJKFIDM, HCPHOJKFIDM);
+        (JMHJDHLBHLK, other.JMHJDHLBHLK) = (other.JMHJDHLBHLK, JMHJDHLBHLK);
+        (LGLIHLJPDIO, other.LGLIHLJPDIO) = (other.LGLIHLJPDIO, LGLIHLJPDIO);
+        (DJOKGDICHAJ, other.DJOKGDICHAJ) = (other.DJOKGDICHAJ, DJOKGDICHAJ);
+        (AIAKAAECMEH, other.AIAKAAECMEH) = (other.AIAKAAECMEH, AIAKAAECMEH);
+        (AAEFMEJBMLH, other.AAEFMEJBMLH) = (other.AAEFMEJBMLH, AAEFMEJBMLH);
+        (PACHBHGEIGN, other.PACHBHGEIGN) = (other.PACHBHGEIGN, PACHBHGEIGN);
+    }
+
 	public ModelController DEGJJOMLJGM()
 	{
 		return FEHOHLMIEBP;
@@ -1857,9 +1923,9 @@ public class Model : global::EventDispatcher<object>
 			_UnityObject.SetActive(false);
 			Object.Destroy(_UnityObject);
 		}
-		_ModelObject.Clear();
+		if (_ModelObject != null) _ModelObject.Clear();
 		Clear();
-		_ModelConditions.Reset();
+		if (_ModelConditions != null) _ModelConditions.Reset();
 		_ModelConditions = null;
 	}
 
@@ -2303,6 +2369,59 @@ public class Model : global::EventDispatcher<object>
 		_Enemies.Remove(ACENLMONNPA);
 	}
 
+    // Synchronous form exchange only. The caller must also update each surviving
+    // weapon model that targets this fighter and retain the rollback until commit.
+    internal System.Action ReplaceEnemyForm(Model expected, Model replacement)
+    {
+        if (expected == null || replacement == null || expected == replacement || replacement == this)
+            throw new System.ArgumentException("Enemy form replacement requires distinct fighters.");
+        int index = _Enemies.IndexOf(expected);
+        if (index < 0 || _Enemies.Contains(replacement))
+            throw new System.InvalidOperationException("Enemy form identity is stale or already registered.");
+        var original = _Enemies.ToArray();
+        var next = new List<Model>();
+        var oldWeapons = expected.KGGIDBLBMDJ();
+        foreach (var enemy in original)
+        {
+            if (enemy == expected)
+            {
+                if (next.Contains(replacement)) continue;
+                next.Add(replacement);
+                foreach (var weapon in replacement.KGGIDBLBMDJ())
+                    if (!next.Contains(weapon)) next.Add(weapon);
+            }
+            else if (!(enemy is WeaponModel oldWeapon && oldWeapons.Contains(oldWeapon)))
+                next.Add(enemy);
+        }
+        var animation = _Animation.OJKLPPNCONP();
+        var nearest = PNNMOKIBOPP;
+        var eventTarget = KDAHHIMLJGG == null ? null : KDAHHIMLJGG.GAIBPAGPEGK;
+        var restoreWeapon = HJOGNGDMAKJ.CaptureEnemyWeapon();
+        System.Action restore = () =>
+        {
+            _Enemies.Clear(); _Enemies.AddRange(original);
+            _Animation.NFEGCGJIICB(animation);
+            PNNMOKIBOPP = nearest;
+            if (KDAHHIMLJGG != null) KDAHHIMLJGG.GAIBPAGPEGK = eventTarget;
+            restoreWeapon();
+        };
+        try
+        {
+            _Enemies.Clear(); _Enemies.AddRange(next);
+            if (animation == expected._Animation)
+                _Animation.NFEGCGJIICB(replacement._Animation);
+            if (nearest == expected)
+            {
+                PNNMOKIBOPP = replacement;
+                HJOGNGDMAKJ.SetWeaponEnemy(replacement.KMMJCHDKBDO.JGMLKIPCFII?.EffectiveTacticSubtype);
+            }
+            if (KDAHHIMLJGG != null && eventTarget == expected)
+                KDAHHIMLJGG.GAIBPAGPEGK = replacement;
+        }
+        catch { restore(); throw; }
+        return restore;
+    }
+
 	public Model FindNearestEnemy()
 	{
 		Model result = null;
@@ -2361,6 +2480,7 @@ public class Model : global::EventDispatcher<object>
 	{
 		Clear();
 		_ModelObject = new ModelObject();
+        _ModelObject.RequireCompleteNodeBindings = RequireCompleteNodeBindings;
 		_ModelObject.set_Model(this);
 		ModelLoader.Load(_ModelObject, NIKHAICFGNM);
 		_Physics = new ModelPhysics(_ModelObject);
@@ -4005,7 +4125,7 @@ public class Model : global::EventDispatcher<object>
 		_Collision = null;
 		HJOGNGDMAKJ = null;
 		_ModelObject = null;
-		KDAHHIMLJGG.Clear();
+		if (KDAHHIMLJGG != null) KDAHHIMLJGG.Clear();
 		KDAHHIMLJGG = null;
 		_Enemies.Clear();
 		JLDBGHLBJEL.Clear();

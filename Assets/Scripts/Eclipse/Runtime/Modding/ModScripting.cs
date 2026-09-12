@@ -655,6 +655,11 @@ namespace Eclipse.Modding
         bool TryAddMagicCharge(double amount, out string error);
     }
 
+    public interface IModFighterForms
+    {
+        bool TryChangeForm(DefinitionId character, Action<bool, string> complete, out string error);
+    }
+
     // Immutable observations of a resolved hit, never a live engine object.
     public sealed class ModDamageEvent
     {
@@ -874,9 +879,14 @@ namespace Eclipse.Modding
         IModFighterOperations Opponent { get; }
     }
 
-    public sealed class ModInstanceFighter : IModFighterOperations, IModDamageEventSource, IModBehaviorInstanceSource, IModFighterTargets, IModIncomingHitSource, IModFighterEffects, IModCombatSnapshotSource, IModCombatActivitySource
+    public sealed class ModInstanceFighter : IModFighterOperations, IModDamageEventSource, IModBehaviorInstanceSource, IModFighterTargets, IModIncomingHitSource, IModFighterEffects, IModCombatSnapshotSource, IModCombatActivitySource, IModFighterForms
     {
         private readonly IModFighterOperations _inner;
+        public bool TryChangeForm(DefinitionId character, Action<bool, string> complete, out string error)
+        {
+            if (_inner is IModFighterForms forms) return forms.TryChangeForm(character, complete, out error);
+            error = "Form changes are unavailable."; return false;
+        }
         public ModCombatActivityEvent ActivityEvent => (_inner as IModCombatActivitySource)?.ActivityEvent;
         public ModCombatSnapshot CaptureCombatSnapshot() => (_inner as IModCombatSnapshotSource)?.CaptureCombatSnapshot();
         public System.Xml.XmlNode SavedInstance { get; }

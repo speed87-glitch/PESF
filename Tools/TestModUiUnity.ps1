@@ -14,6 +14,13 @@ Copy-Item -LiteralPath (Join-Path $root 'Library/ScriptAssemblies/MoonSharp.Inte
 Copy-Item -LiteralPath (Join-Path $root 'Mods/example.charge-ui') -Destination (Join-Path $fixture 'Mods') -Recurse
 New-Item -ItemType Directory -Path (Join-Path $fixture 'SceneMods') | Out-Null
 Copy-Item -LiteralPath (Join-Path $root 'Mods/example.scene-menu') -Destination (Join-Path $fixture 'SceneMods') -Recurse
+New-Item -ItemType Directory -Path (Join-Path $fixture 'GridMods') | Out-Null
+Copy-Item -LiteralPath (Join-Path $root 'Mods/example.grid-ui') -Destination (Join-Path $fixture 'GridMods') -Recurse
+New-Item -ItemType Directory -Path (Join-Path $fixture 'VisualMods') | Out-Null
+foreach ($example in @('example.pulse-guardian','example.tactic-gallery','example.arena-draft','example.shifting-guardian')) {
+    Copy-Item -LiteralPath (Join-Path $root ('Mods/'+$example)) -Destination (Join-Path $fixture 'VisualMods') -Recurse
+}
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'ValidateVisualExamples.cs') -Destination (Join-Path $fixture 'Assets/Editor')
 Copy-Item -LiteralPath (Join-Path $root 'Assets/vanillaXml/stages.xml') -Destination (Join-Path $fixture 'FixtureData')
 Copy-Item -LiteralPath (Join-Path $root 'Assets/Scripts/Eclipse/UI/Modding/ModUiView.cs') -Destination (Join-Path $fixture 'Assets')
 Copy-Item -LiteralPath (Join-Path $root 'Assets/Scripts/Eclipse/UI/Modding/ModUiCoordinator.cs') -Destination (Join-Path $fixture 'Assets')

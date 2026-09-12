@@ -69,6 +69,29 @@ public class ModelLoader
 		ACENLMONNPA.KJIEPFHIIKM();
 	}
 
+    // Form preparation must not accept the legacy loader's log-and-continue
+    // behavior for absent assets. Populate the same document cache before any
+    // native model construction; optional empty-model sentinels remain omitted.
+    internal static void RequireModelDocuments(List<string> paths)
+    {
+        if (paths == null) throw new System.ArgumentNullException(nameof(paths));
+        int count = 0;
+        foreach (string path in paths)
+        {
+            if (path == "assets/models/.xml") continue;
+            if (string.IsNullOrWhiteSpace(path))
+                throw new System.IO.InvalidDataException("Prepared form contains an empty model path.");
+            XmlDocument document = FHGHPCACAKJ.JBJDPDOEGFO(SF2Paths.BNHLPKEDMOM(), path);
+            if (document == null)
+                throw new System.IO.FileNotFoundException("Prepared form model is missing: " + path, path);
+            if (document["Scene"] == null || document["Scene"]["Figures"] == null)
+                throw new System.IO.InvalidDataException("Prepared form model requires Scene and Figures: " + path);
+            count++;
+        }
+        if (count == 0)
+            throw new System.IO.InvalidDataException("Prepared form requires at least one model document.");
+    }
+
 	private static void Parse(ModelObject ACENLMONNPA, XmlDocument EELFNMOHGJL)
 	{
 		XmlNode eELFNMOHGJL = EELFNMOHGJL["Scene"];

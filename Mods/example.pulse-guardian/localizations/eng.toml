@@ -1,0 +1,4 @@
+trial = "Pulse Guardian"
+trial.description = "Watch the shield meter: three seconds protected, three seconds vulnerable."
+zones/trial = "Pulse Guardian"
+fighter = "Pulse Guardian"

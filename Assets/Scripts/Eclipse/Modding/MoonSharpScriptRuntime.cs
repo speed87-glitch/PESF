@@ -224,6 +224,31 @@ namespace Eclipse.Modding
                             fighterTable.Set("opponent", DynValue.NewTable(targetTable));
                         }
                     }
+                    if (fighter is IModFighterForms forms)
+                    {
+                        fighterTable.Set("change_form", DynValue.NewCallback((ctx, args) =>
+                        {
+                            if (!invocationActive) throw new ScriptRuntimeException("Fighter operations have expired.");
+                            _api.RequireCapability("combat.transform");
+                            int offset = args[0].Type == DataType.Table && args[0].Table == fighterTable ? 1 : 0;
+                            var value = args[offset];
+                            if (value.Type != DataType.Table || !_warriorHandles.TryGetValue(value.Table, out var character))
+                                throw new ScriptRuntimeException("change_form requires a warrior handle registered by this mod.");
+                            var receipt = new Table(_script);
+                            receipt.Set("status", DynValue.NewString("queued"));
+                            receipt.Set("error", DynValue.Nil);
+                            if (!forms.TryChangeForm(character, (success, failure) =>
+                            {
+                                receipt.Set("status", DynValue.NewString(success ? "applied" : "failed"));
+                                receipt.Set("error", success ? DynValue.Nil : DynValue.NewString(failure ?? "Form change failed."));
+                            }, out var error))
+                            {
+                                receipt.Set("status", DynValue.NewString("failed"));
+                                receipt.Set("error", DynValue.NewString(error ?? "Form preparation failed."));
+                            }
+                            return DynValue.NewTable(receipt);
+                        }));
+                    }
                     if (fighter is IModFighterEffects effects)
                     {
                         fighterTable.Set("add_damage_shield", DynValue.NewCallback((ctx, args) =>

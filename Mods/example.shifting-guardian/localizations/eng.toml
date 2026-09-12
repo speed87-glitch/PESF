@@ -1,0 +1,5 @@
+trial = "Shifting Guardian"
+trial.description = "After three seconds, the staff guardian requests a baton form. Watch the result HUD."
+zones/trial = "Shifting Guardian"
+fighter = "Staff Guardian"
+fighter.second = "Baton Guardian"

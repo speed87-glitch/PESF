@@ -107,6 +107,19 @@ public class ViewerModel
 		INNLAFHKJNI.RemoveAt(index);
 	}
 
+    internal bool ReplaceModel(int index, ModelObject expected, ModelObject replacement, Color color)
+    {
+        if (expected == null || replacement == null || index < 0 || index >= INNLAFHKJNI.Count ||
+            INNLAFHKJNI[index] != expected || INNLAFHKJNI.Contains(replacement)) return false;
+        // Prepare render parenting before changing either primary fighter reference.
+        replacement.get_Model().MJNPBMOAFML().transform.SetParent(_UnityObject.transform, false);
+        replacement.get_Model().set_color(color);
+        INNLAFHKJNI[index] = replacement;
+        if (PHJPLPPEPJN == expected) PHJPLPPEPJN = replacement;
+        if (JMHBCFGBHIP == expected) JMHBCFGBHIP = replacement;
+        return true;
+    }
+
 	public void NGPIALAGGBI(ModelObject ACENLMONNPA, bool value)
 	{
 		foreach (ModelObject item in INNLAFHKJNI)

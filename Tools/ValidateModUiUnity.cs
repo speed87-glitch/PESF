@@ -189,6 +189,8 @@ public static class ValidateModUiUnity
             Bridge(tree);
             LuaRoundTrip();
             SceneMenuRoundTrip();
+            GridShowcaseRoundTrip();
+            VisualShowcaseRoundTrip();
             if (Environment.GetCommandLineArgs().Contains("-uiPreview")) Preview();
             Debug.Log("[ModUiUnity] PASS: " + checks + " production Unity UI hierarchy, update, input and lifetime checks. Full-game integration is not claimed.");
             EditorApplication.Exit(0);
@@ -331,6 +333,102 @@ public static class ValidateModUiUnity
         var bridge=UnityEngine.Object.FindObjectOfType<ModUiGameBridge>();
         if(bridge!=null)UnityEngine.Object.DestroyImmediate(bridge.gameObject);
     }
+    static void VisualShowcaseRoundTrip()
+    {
+        string root=Path.GetFullPath(Path.Combine(Application.dataPath,".."));
+        ValidateVisualExamples.Run(Path.Combine(root,"VisualMods"),Path.Combine(root,"FixtureData/stages.xml"),surface=>{
+            ModUiGameBridge.Attach(surface);
+            var view=UnityEngine.Object.FindObjectsOfType<ModUiView>().Single();
+            Check(!surface.IsClosed&&view.gameObject.activeSelf,"Visual showcase failed to mount");
+            foreach(var label in view.GetComponentsInChildren<Text>())
+                Check(label.font!=null&&label.font.name=="AGOpusBold","Showcase lost native font");
+            foreach(var button in view.GetComponentsInChildren<Button>())
+                Check(button.GetComponent<Image>().sprite!=null,"Showcase button art missing");
+            foreach(var toggle in view.GetComponentsInChildren<Toggle>())
+            {
+                Check(toggle.isOn== (surface.Read(toggle.name).Value!=0),"Showcase toggle state differs from Lua");
+                Check(Mathf.Approximately(toggle.graphic.canvasRenderer.GetAlpha(),toggle.isOn?1:0),"Showcase checkmark visibility differs from toggle state");
+                bool original=toggle.isOn;
+                surface.SetChecked(toggle.name,!original);
+                Check(toggle.isOn==!original&&Mathf.Approximately(toggle.graphic.canvasRenderer.GetAlpha(),original?0:1),"Programmatic checkbox graphic did not change");
+                surface.SetChecked(toggle.name,original);
+                Check(toggle.isOn==original&&Mathf.Approximately(toggle.graphic.canvasRenderer.GetAlpha(),original?1:0),"Checkbox graphic did not restore");
+            }
+            if(Environment.GetCommandLineArgs().Contains("-uiPreview")) CaptureShowcase(view,surface.Owner.ToString());
+        });
+        var bridge=UnityEngine.Object.FindObjectOfType<ModUiGameBridge>();
+        if(bridge!=null)UnityEngine.Object.DestroyImmediate(bridge.gameObject);
+    }
+
+    static void CaptureShowcase(ModUiView view,string name)
+    {
+        var camera=new GameObject("Showcase camera",typeof(Camera)).GetComponent<Camera>();
+        camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=new Color32(35,19,12,255);
+        var target=new RenderTexture(1280,720,24);camera.targetTexture=target;
+        var canvas=new GameObject("Showcase canvas",typeof(RectTransform),typeof(Canvas)).GetComponent<Canvas>();
+        canvas.renderMode=RenderMode.ScreenSpaceCamera;canvas.worldCamera=camera;canvas.planeDistance=1;
+        var rect=view.GetComponent<RectTransform>();var parent=rect.parent;
+        var min=rect.anchorMin;var max=rect.anchorMax;var position=rect.anchoredPosition;var scale=rect.localScale;
+        rect.SetParent(canvas.transform,false);rect.anchorMin=rect.anchorMax=Vector2.one*.5f;rect.anchoredPosition=Vector2.zero;rect.localScale=Vector3.one;
+        Canvas.ForceUpdateCanvases();camera.Render();
+        var previous=RenderTexture.active;RenderTexture.active=target;
+        var pixels=new Texture2D(1280,720,TextureFormat.RGB24,false);pixels.ReadPixels(new Rect(0,0,1280,720),0,0);pixels.Apply();RenderTexture.active=previous;
+        File.WriteAllBytes(Path.Combine(Path.GetDirectoryName(Application.dataPath),name+".png"),pixels.EncodeToPNG());
+        rect.SetParent(parent,false);rect.anchorMin=min;rect.anchorMax=max;rect.anchoredPosition=position;rect.localScale=scale;
+        camera.targetTexture=null;target.Release();
+        UnityEngine.Object.DestroyImmediate(pixels);UnityEngine.Object.DestroyImmediate(target);
+        UnityEngine.Object.DestroyImmediate(canvas.gameObject);UnityEngine.Object.DestroyImmediate(camera.gameObject);
+    }
+
+    static void GridShowcaseRoundTrip()
+    {
+        string root=Path.GetFullPath(Path.Combine(Application.dataPath,".."));
+        var mod=ModDiscovery.DiscoverLoose(Path.Combine(root,"GridMods")).Mods.Single();
+        var catalog=new ModContentCatalog();
+        var assets=new AssetResolver(new IAssetProvider[]{new LooseModProvider(mod)});
+        var surfaces=new List<ModUiSurface>();
+        var errors=new List<string>();
+        var bus=new ModStoryEvents((id,error)=>errors.Add(error));
+        var runtime=new MoonSharpScriptRuntime(surface=>{surfaces.Add(surface);ModUiGameBridge.Attach(surface);},null,null,bus);
+        using(var registration=catalog.BeginRegistration(mod))
+        using(var context=runtime.CreateContext(mod,new ModApiFacade(mod,assets,registration,new ModStateRuntime(),null)))
+        {
+            context.ExecuteEntrypoint();registration.Commit();bus.BindProfile();
+            bus.Publish(new ModStoryEvent(ModStoryEventKind.SceneEnter,null,scene:"fight"));
+            Check(surfaces.Count==0,"Grid showcase opened in combat");
+            bus.Publish(new ModStoryEvent(ModStoryEventKind.SceneEnter,null,scene:"map"));
+            var surface=surfaces.Single();
+            var view=UnityEngine.Object.FindObjectsOfType<ModUiView>().Single();
+            Canvas.ForceUpdateCanvases();
+            var buttons=view.GetComponentsInChildren<Button>(true);
+            Func<string,Button> button=id=>buttons.Single(b=>b.name==id);
+            Check(buttons.Length==15,"Grid showcase button count");
+            Check(view.GetComponentsInChildren<GridLayoutGroup>().Single().constraintCount==3,"Grid showcase columns");
+            Check(buttons.All(b=>b.GetComponent<Image>().sprite?.name=="CommonButtons.BtnWhite"),"Grid showcase native button skin");
+            Check(view.GetComponentsInChildren<Text>().All(t=>t.font!=null&&t.font.name=="AGOpusBold"),"Grid showcase native font");
+            button("item_3").onClick.Invoke();
+            Check(view.GetComponentsInChildren<Text>().Any(t=>t.text=="Selected: Staff"),"Grid selection callback");
+            button("hide").onClick.Invoke();Canvas.ForceUpdateCanvases();
+            Check(!button("item_1").gameObject.activeSelf,"Grid hide control");
+            button("hide").onClick.Invoke();
+            button("disable").onClick.Invoke();
+            Check(!button("item_2").interactable,"Grid disable control");
+            button("disable").onClick.Invoke();
+            for(int i=0;i<25&&EventSystem.current.currentSelectedGameObject!=button("item_12").gameObject;i++)view.MoveFocus(1);
+            Check(EventSystem.current.currentSelectedGameObject==button("item_12").gameObject,"Grid lower-row keyboard reachability");
+            Check(view.GetComponentInChildren<ScrollRect>().content.anchoredPosition.y>0,"Grid lower row not revealed");
+            Check(view.ActivateSelected(),"Grid keyboard activation");
+            Check(view.GetComponentsInChildren<Text>().Any(t=>t.text=="Selected: Nunchaku"),"Grid keyboard label");
+            button("close").onClick.Invoke();Check(surface.IsClosed,"Grid BACK did not close");
+            bus.Publish(new ModStoryEvent(ModStoryEventKind.SceneEnter,null,scene:"shop"));
+            Check(surfaces.Count==2&&!surfaces.Last().IsClosed,"Grid did not reopen");
+            surfaces.Last().Close();
+            Check(errors.Count==0,"Grid showcase script errors: "+string.Join(";",errors));
+        }
+        var bridge=UnityEngine.Object.FindObjectOfType<ModUiGameBridge>();
+        if(bridge!=null)UnityEngine.Object.DestroyImmediate(bridge.gameObject);
+    }
+
     static void SceneMenuRoundTrip()
     {
         string root=Path.GetFullPath(Path.Combine(Application.dataPath,".."));

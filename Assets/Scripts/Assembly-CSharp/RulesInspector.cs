@@ -43,6 +43,18 @@ public class RulesInspector : global::EventDispatcher<object>
 
 	private List<InFightRule> _inFightRules = new List<InFightRule>();
 
+    internal System.Action PrepareModelRebind(Model expected, Model replacement)
+    {
+        if (expected == null || replacement == null) throw new System.ArgumentNullException();
+        var assignments = new List<System.Action>();
+        foreach (var rule in _inFightRules)
+        {
+            var assignment = rule.PrepareModelRebind(expected, replacement);
+            if (assignment != null) assignments.Add(assignment);
+        }
+        return () => { foreach (var assign in assignments) assign(); };
+    }
+
 	private List<ItemRule> _itemRules = new List<ItemRule>();
 
 	private List<ItemRule> _playerItemRules = new List<ItemRule>();

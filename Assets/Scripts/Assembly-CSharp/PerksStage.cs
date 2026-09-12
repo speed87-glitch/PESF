@@ -33,6 +33,7 @@ public class PerksStage : global::EventDispatcher<PerksStage.PerkEventStruct>
 		public int MGDCIODPHCH;
 
 		public ItemInfo PreviousMagic;
+        public Dictionary<string, int> AppliedAttributes;
 
 		public string KGPDHIKOEKF
 		{
@@ -67,6 +68,8 @@ public class PerksStage : global::EventDispatcher<PerksStage.PerkEventStruct>
 			FLNCPBKBJBL = IBODMPMJELJ.FLNCPBKBJBL;
 			MGDCIODPHCH = IBODMPMJELJ.MGDCIODPHCH;
 			PreviousMagic = IBODMPMJELJ.PreviousMagic;
+            AppliedAttributes = IBODMPMJELJ.AppliedAttributes == null ? null :
+                new Dictionary<string, int>(IBODMPMJELJ.AppliedAttributes);
 		}
 
 		public string LGMFEIFGGDG()
@@ -134,15 +137,169 @@ public class PerksStage : global::EventDispatcher<PerksStage.PerkEventStruct>
 
 	public void AddModel(Model ACENLMONNPA)
 	{
+		var prepared = PrepareModelRegistration(ACENLMONNPA);
 		RemoveModel(ACENLMONNPA);
-		PerkModelStruct iAIBLEELGNK = new PerkModelStruct();
-		iAIBLEELGNK.set_Model(ACENLMONNPA);
-		MPJMCCGKEOD.Add(iAIBLEELGNK);
-		foreach (PerkInfoItem item in ACENLMONNPA.KMMJCHDKBDO.NHBIJEEKALC)
-		{
-			OPACOCIKEOL(iAIBLEELGNK, item);
-		}
+		MPJMCCGKEOD.Add(prepared);
 	}
+
+    internal System.Action ReplaceFormRegistration(Model expected, Model replacement)
+    {
+        if (expected == null || replacement == null || expected == replacement)
+            throw new System.ArgumentException("Form perk registration requires distinct models.");
+        int index = MPJMCCGKEOD.FindIndex(value => value.get_Model() == expected);
+        if (index < 0 || MPJMCCGKEOD.Exists(value => value.get_Model() == replacement))
+            throw new System.InvalidOperationException("Form perk registration identity is stale.");
+        var original = MPJMCCGKEOD[index];
+        var prepared = PrepareModelRegistration(replacement);
+        // Existing effect containers own timers, queued work and expiry history.
+        // New trigger tables come from the replacement's loadout, while effects
+        // already started continue through those same containers exactly once.
+        prepared.HIPOGANEPMI().AddRange(original.HIPOGANEPMI());
+        foreach (var data in prepared.ANPCFJGEJPO())
+        {
+            var previous = original.ANPCFJGEJPO().Find(value => value.MBDDKGIOOGD == data.MBDDKGIOOGD);
+            if (previous != null) data.Enabled = previous.Enabled;
+        }
+        MPJMCCGKEOD[index] = prepared;
+        return () => MPJMCCGKEOD[index] = original;
+    }
+
+    internal System.Action TransferFormEffects(Model expected, Model replacement)
+    {
+        var undo = new List<System.Action>();
+        var seen = new HashSet<ActionPerk>();
+        System.Action restore = () =>
+        {
+            for (int index = undo.Count - 1; index >= 0; index--) undo[index]();
+        };
+        try
+        {
+            undo.Add(replacement.CopyFormModifiersFrom(expected));
+            foreach (var registration in MPJMCCGKEOD)
+                foreach (var perk in registration.HIPOGANEPMI())
+                    foreach (var action in perk.HIPOGANEPMI())
+                    {
+                        if (!seen.Add(action)) continue;
+                        if (action.KJDFJPBIGJC == expected && action.AMKJNPOCODK is PerkActionSetAttributes)
+                            undo.Add(perk.TransferAttributeEffect(action, expected, replacement));
+                        else if (action.AMKJNPOCODK is ModHealthChange &&
+                            (action.KJDFJPBIGJC == expected || action.BIKLKJMNGKP == expected))
+                            undo.Add(perk.TransferHealthEffect(action, expected, replacement));
+                        else if (action.KJDFJPBIGJC == expected && IsFormBodyModifier(action.AMKJNPOCODK.get_Type()))
+                        {
+                            var source = action.BIKLKJMNGKP;
+                            action.KJDFJPBIGJC = replacement;
+                            if (source == expected) action.BIKLKJMNGKP = replacement;
+                            undo.Add(() => { action.KJDFJPBIGJC = expected; action.BIKLKJMNGKP = source; });
+                        }
+                        else if (action.BIKLKJMNGKP == expected && action.KJDFJPBIGJC != expected)
+                        {
+                            // Source-only references carry attribution, not an
+                            // applied modification on the retiring body.
+                            action.BIKLKJMNGKP = replacement;
+                            undo.Add(() => action.BIKLKJMNGKP = expected);
+                        }
+                    }
+            var history = new HashSet<ActionPerk>(JLAKGOEOHMN);
+            foreach (var action in history)
+            {
+                // CLBPEANCNOA records expired actions here. Live aliases still
+                // take the effect-specific path. Namespace-only records are not
+                // proof of expiry and remain subject to the retirement gate.
+                if (action == null || seen.Contains(action)) continue;
+                var target = action.KJDFJPBIGJC;
+                var source = action.BIKLKJMNGKP;
+                if (target != expected && source != expected) continue;
+                undo.Add(() => { action.KJDFJPBIGJC = target; action.BIKLKJMNGKP = source; });
+                if (target == expected) action.KJDFJPBIGJC = replacement;
+                if (source == expected) action.BIKLKJMNGKP = replacement;
+            }
+        }
+        catch { restore(); throw; }
+        return restore;
+    }
+
+    private static bool IsFormBodyModifier(ActionType type)
+    {
+        switch (type)
+        {
+            case ActionType.ACTION_CHANGE_IMPULSE:
+            case ActionType.ACTION_CHANGE_HIT_EFFECT_SCALE:
+            case ActionType.ACTION_CHANGE_ADD_DAMAGE_VALUE:
+            case ActionType.ACTION_CHANGE_MODEL_COLOR:
+            case ActionType.ACTION_SLOW_MODEL:
+            case ActionType.ACTION_TURN_OFF_COLLISION:
+            // These presentations belong to the fight/side; keep their existing
+            // objects and timers. Expiry receives the replacement participant.
+            case ActionType.ACTION_SHOW_ICONS:
+            case ActionType.ACTION_PERK_AREA:
+            case ActionType.ACTION_INVISIBILITY:
+                return true;
+            default: return false;
+        }
+    }
+
+    internal void RequireFormReferencesTransferred(ISet<Model> retired)
+    {
+        var actions = new HashSet<ActionPerk>(JLAKGOEOHMN);
+        foreach (var values in PNAALKAHAKG.Values) actions.UnionWith(values);
+        foreach (var registration in MPJMCCGKEOD)
+            foreach (var perk in registration.HIPOGANEPMI())
+            {
+                actions.UnionWith(perk.MNLNLKOJPHO());
+                actions.UnionWith(perk.HIPOGANEPMI());
+            }
+        foreach (var action in actions)
+            if (action != null && (retired.Contains(action.KJDFJPBIGJC) || retired.Contains(action.BIKLKJMNGKP)))
+                throw new System.InvalidOperationException("Form still owns an untransferred perk action: " +
+                    (action.AMKJNPOCODK == null ? "unknown" : action.AMKJNPOCODK.get_Type().ToString()));
+    }
+
+    // Only pending actions are safe to retarget without transferring effects that
+    // have already modified a body. Containers and timing fields stay unchanged.
+    internal System.Action RebindQueuedFormActions(Model expected, Model replacement)
+    {
+        if (expected == null || replacement == null || expected == replacement)
+            throw new System.ArgumentException("Queued perk rebinding requires distinct models.");
+        var pending = new HashSet<ActionPerk>();
+        var active = new HashSet<ActionPerk>(JLAKGOEOHMN);
+        foreach (var registration in MPJMCCGKEOD)
+            foreach (var perk in registration.HIPOGANEPMI())
+            {
+                pending.UnionWith(perk.MNLNLKOJPHO());
+                active.UnionWith(perk.HIPOGANEPMI());
+            }
+        foreach (var actions in PNAALKAHAKG.Values) active.UnionWith(actions);
+        var restore = new List<System.Action>();
+        foreach (var action in pending)
+        {
+            if (action == null || active.Contains(action)) continue;
+            var target = action.KJDFJPBIGJC;
+            var source = action.BIKLKJMNGKP;
+            if (target != expected && source != expected) continue;
+            restore.Add(() => { action.KJDFJPBIGJC = target; action.BIKLKJMNGKP = source; });
+        }
+        // Capture every reference before mutation; no action execution is involved.
+        foreach (var action in pending)
+        {
+            if (action == null || active.Contains(action)) continue;
+            if (action.KJDFJPBIGJC == expected) action.KJDFJPBIGJC = replacement;
+            if (action.BIKLKJMNGKP == expected) action.BIKLKJMNGKP = replacement;
+        }
+        return () => { foreach (var undo in restore) undo(); };
+    }
+
+    // Build trigger tables without exposing a partially prepared registration to
+    // combat dispatch. Preparation does not run perks or transfer active effects.
+    internal PerkModelStruct PrepareModelRegistration(Model model)
+    {
+        if (model == null) throw new System.ArgumentNullException(nameof(model));
+        var prepared = new PerkModelStruct();
+        prepared.set_Model(model);
+        foreach (var perk in model.KMMJCHDKBDO.NHBIJEEKALC)
+            OPACOCIKEOL(prepared, perk);
+        return prepared;
+    }
 
 	public void RemoveModel(Model ACENLMONNPA)
 	{

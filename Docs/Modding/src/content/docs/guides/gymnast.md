@@ -115,4 +115,4 @@ candidate list; event-only animations are excluded. Generated package tests also
 exercise Lua clip cycling, pacing and unavailable-clip fallback. Neither test
 simulates contact physics or proves that authored geometry looks correct in a fight.
 
-The [low-level point-rig tools](../character-authoring/) remain available for format work. They are not the recommended visual authoring interface. Automatic retargeting from unrelated skeletons, arbitrary Blender shaders, complete custom character controllers/forms and full-game visual/combat acceptance remain separate requirements.
+The [low-level point-rig tools](../character-authoring/) remain available for format work. They also include [explicit armature retargeting](../character-authoring/#retarget-motion-from-another-blender-armature) using a creator-supplied bone mapping and calibration frame. They are not the recommended visual authoring interface. Automatic skeleton matching, arbitrary Blender shaders, complete custom character controllers/forms and full-game visual/combat acceptance remain separate requirements.

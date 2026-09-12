@@ -10,6 +10,299 @@ using UnityEngine;
 
 public class Fight
 {
+    internal sealed class PreparedFormModel : IDisposable
+    {
+        private Model _model;
+        internal Model Model => _model;
+
+        internal PreparedFormModel(ModelParameters destination)
+        {
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            // Never let preparation mutate a catalog definition or the live fighter's parameters.
+            var parameters = new ModelParameters(destination);
+            parameters.IBBALIJOJMC = SceneTypes.SceneFight;
+            ModelLoader.RequireModelDocuments(parameters.MNPAALCFAKL);
+            var model = new Model(parameters);
+            model.RequireCompleteNodeBindings = true;
+            try
+            {
+                model.MJNPBMOAFML().SetActive(false);
+                model.CGEKLPLKIDC();
+                _model = model;
+            }
+            catch
+            {
+                model.IMFOFFFLGOM();
+                throw;
+            }
+        }
+
+        // Call only after registration succeeds; failed/unclaimed preparation owns cleanup.
+        internal Model Take()
+        {
+            if (_model == null) throw new InvalidOperationException("Prepared form was already consumed or disposed.");
+            var model = _model;
+            _model = null;
+            return model;
+        }
+
+        public void Dispose()
+        {
+            var model = _model;
+            _model = null;
+            if (model != null) model.IMFOFFFLGOM();
+        }
+    }
+
+    private sealed class PendingModelTransition
+    {
+        internal Model Model;
+        internal int Round;
+        internal Action Apply;
+        internal Action<Exception> Complete;
+    }
+
+    // A reversible registration stage for the form coordinator. Resource
+    // ownership and visibility remain with the caller until it commits.
+    internal sealed class FormRenderBindings : IDisposable
+    {
+        private Fight _fight;
+        private readonly Model _expected, _replacement;
+        private readonly bool _player;
+        private bool _camera, _animation, _rules;
+        private Action _restoreAnimationEvents;
+        private Action _restoreQueuedPerks;
+        private Action _restoreActiveEffects;
+        private Action _restorePerkRegistration;
+        private Action _restoreParticipant;
+        private Action _restoreCombatState;
+        private Action _restorePresentation;
+        private readonly List<Action> _restoreEnemyTargets = new List<Action>();
+
+        internal FormRenderBindings(Fight fight, Model expected, Model replacement)
+        {
+            if (fight == null || expected == null || replacement == null || expected == replacement)
+                throw new ArgumentException("Form binding requires two distinct models and a fight.");
+            if (expected != fight._playerModel && expected != fight.CKNCPOABFBO)
+                throw new InvalidOperationException("The original fighter is no longer active.");
+            _fight = fight; _expected = expected; _replacement = replacement;
+            _player = expected == fight._playerModel;
+            try
+            {
+                var rules = fight._rulesInspector.PrepareModelRebind(expected, replacement);
+                _restoreAnimationEvents = fight._SelectAnimation.CapturePendingEvents();
+                if (!fight._Camera.ReplaceModel(expected, replacement, _player))
+                    throw new InvalidOperationException("Camera rejected the form replacement.");
+                _camera = true;
+                var observers = new HashSet<Model>(fight.LNDLFINJHDB);
+                foreach (var model in fight.LNDLFINJHDB)
+                    if (model != null)
+                        foreach (var weapon in model.KGGIDBLBMDJ()) observers.Add(weapon);
+                foreach (var observer in observers)
+                    if (observer != null && observer != replacement && observer.BDJBNOPNCNB() != expected &&
+                        observer._Enemies.Contains(expected))
+                        _restoreEnemyTargets.Add(observer.ReplaceEnemyForm(expected, replacement));
+                if (!fight._SelectAnimation.ReplaceModel(expected, replacement))
+                    throw new InvalidOperationException("Animation selection rejected the form replacement.");
+                _animation = true;
+                _restoreQueuedPerks = fight.EPBDEDGLHJE.RebindQueuedFormActions(expected, replacement);
+                _restoreActiveEffects = fight.EPBDEDGLHJE.TransferFormEffects(expected, replacement);
+                _restorePerkRegistration = fight.EPBDEDGLHJE.ReplaceFormRegistration(expected, replacement);
+                rules(); _rules = true;
+                _restoreCombatState = expected.TransferFormCombatState(replacement);
+                _restoreParticipant = fight.BindFormParticipant(expected, replacement);
+                _restorePresentation = fight.BindFormPresentation(expected, replacement, _player);
+            }
+            catch (Exception original)
+            {
+                try { Dispose(); }
+                catch (Exception rollback) { throw new AggregateException("Form binding and restoration failed.", original, rollback); }
+                throw;
+            }
+        }
+
+        internal void Commit()
+        {
+            if (_fight == null) throw new InvalidOperationException("Form bindings were already completed.");
+            _fight = null;
+        }
+
+        internal bool Owns(Fight fight, Model expected, Model replacement)
+        {
+            return _fight == fight && _expected == expected && _replacement == replacement;
+        }
+
+        public void Dispose()
+        {
+            var fight = _fight;
+            _fight = null;
+            if (fight == null) return;
+            var failures = new List<Exception>();
+            if (_restorePresentation != null) try { _restorePresentation(); }
+                catch (Exception exception) { failures.Add(exception); }
+            if (_restoreParticipant != null) try { _restoreParticipant(); }
+                catch (Exception exception) { failures.Add(exception); }
+            if (_restoreCombatState != null) try { _restoreCombatState(); }
+                catch (Exception exception) { failures.Add(exception); }
+            if (_restorePerkRegistration != null) try { _restorePerkRegistration(); }
+                catch (Exception exception) { failures.Add(exception); }
+            if (_restoreActiveEffects != null) try { _restoreActiveEffects(); }
+                catch (Exception exception) { failures.Add(exception); }
+            if (_restoreQueuedPerks != null) try { _restoreQueuedPerks(); }
+                catch (Exception exception) { failures.Add(exception); }
+            if (_rules) try { fight._rulesInspector.PrepareModelRebind(_replacement, _expected)(); }
+                catch (Exception exception) { failures.Add(exception); }
+            for (int index = _restoreEnemyTargets.Count - 1; index >= 0; index--)
+                try { _restoreEnemyTargets[index](); }
+                catch (Exception exception) { failures.Add(exception); }
+            if (_animation) try {
+                if (!fight._SelectAnimation.ReplaceModel(_replacement, _expected))
+                    throw new InvalidOperationException("Could not restore animation selection.");
+                _restoreAnimationEvents();
+            } catch (Exception exception) { failures.Add(exception); }
+            if (_camera) try {
+                if (!fight._Camera.ReplaceModel(_replacement, _expected, _player))
+                    throw new InvalidOperationException("Could not restore camera registration.");
+            } catch (Exception exception) { failures.Add(exception); }
+            if (failures.Count != 0) throw new AggregateException("Could not restore form registrations.", failures);
+        }
+    }
+
+    private readonly Dictionary<Model, PendingModelTransition> _modelTransitions = new Dictionary<Model, PendingModelTransition>();
+    private readonly HashSet<Model> _retiredFormBodies = new HashSet<Model>();
+    private bool _drainingModelTransitions;
+    private bool _modelTransitionsClosed;
+    private PendingModelTransition _applyingModelTransition;
+
+    // Host-only: the caller must prepare/validate replacement resources first.
+    // Success here means queued, not applied. Completion runs at the frame boundary.
+    internal bool QueueModelTransition(Model model, Action apply, Action<Exception> complete)
+    {
+        if (_modelTransitionsClosed || model == null || apply == null || complete == null || !round.processing ||
+            _eclipseFightEndDispatched || (model != _playerModel && model != CKNCPOABFBO) ||
+            model.KKMCHCNOHMB() <= 0 || _modelTransitions.ContainsKey(model)) return false;
+        _modelTransitions.Add(model, new PendingModelTransition {
+            Model = model, Round = round.round, Apply = apply, Complete = complete });
+        return true;
+    }
+
+    private void DrainModelTransitions()
+    {
+        if (_drainingModelTransitions || _modelTransitions.Count == 0) return;
+        _drainingModelTransitions = true;
+        try
+        {
+            // Requests made by completion handlers wait for another simulation step.
+            var pending = new List<PendingModelTransition>(_modelTransitions.Values);
+            foreach (var request in pending)
+            {
+                if (!_modelTransitions.TryGetValue(request.Model, out var current) || current != request) continue;
+                Exception failure = null;
+                try
+                {
+                    if (_modelTransitionsClosed || !round.processing || _eclipseFightEndDispatched || request.Round != round.round ||
+                        (request.Model != _playerModel && request.Model != CKNCPOABFBO) || request.Model.KKMCHCNOHMB() <= 0)
+                        throw new OperationCanceledException("Fighter or round ended before the model transition.");
+                    _applyingModelTransition = request;
+                    request.Apply();
+                }
+                catch (Exception exception) { failure = exception; }
+                finally { _applyingModelTransition = null; _modelTransitions.Remove(request.Model); }
+                try { request.Complete(failure); }
+                catch (Exception exception) { UnityEngine.Debug.LogException(exception); }
+            }
+        }
+        finally { _drainingModelTransitions = false; }
+    }
+
+    private void CloseModelTransitions()
+    {
+        _modelTransitionsClosed = true;
+        var pending = new List<PendingModelTransition>(_modelTransitions.Values);
+        foreach (var request in pending)
+        {
+            if (request == _applyingModelTransition) continue;
+            if (!_modelTransitions.Remove(request.Model)) continue;
+            try { request.Complete(new OperationCanceledException("Fight unloaded before the model transition.")); }
+            catch (Exception exception) { UnityEngine.Debug.LogException(exception); }
+        }
+    }
+
+    // Participant identity must move with the body: round results and behavior
+    // state otherwise keep addressing the retired fighter after a visual swap.
+    internal Action BindFormParticipant(Model expected, Model replacement)
+    {
+        if (expected == null || replacement == null || expected == replacement)
+            throw new ArgumentException("Form participants must be distinct.");
+        bool player = expected == _playerModel;
+        int index = LNDLFINJHDB.IndexOf(expected);
+        if ((!player && expected != CKNCPOABFBO) || index < 0 || LNDLFINJHDB.Contains(replacement))
+            throw new InvalidOperationException("Form participant identity is stale.");
+        var originalParameters = expected.KMMJCHDKBDO;
+        var parameters = replacement.KMMJCHDKBDO;
+        if (parameters == originalParameters || parameters.IsPlayer != player ||
+            (player ? NMNCKBPFCCP : AKBNKDBHCEO) != originalParameters ||
+            (!player && (ADJAMFGBOAP < 0 || ADJAMFGBOAP >= IDAAONBIBJM.Count ||
+                IDAAONBIBJM[ADJAMFGBOAP] != originalParameters)))
+            throw new InvalidOperationException("Form parameters do not match the active participant.");
+        if (_eclipseShields.ContainsKey(replacement))
+            throw new InvalidOperationException("Replacement already owns combat state.");
+        var opponentState = CaptureFormBehaviorKeys(_eclipseOpponentInstances, expected, replacement);
+        var innateState = CaptureFormBehaviorKeys(_eclipseInnateInstances, expected, replacement);
+        var tactic = GINNOLEJDFM;
+        bool hasShield = _eclipseShields.TryGetValue(expected, out var shield);
+        LNDLFINJHDB[index] = replacement;
+        if (player) { _playerModel = replacement; NMNCKBPFCCP = parameters; }
+        else
+        {
+            CKNCPOABFBO = replacement; AKBNKDBHCEO = parameters;
+            IDAAONBIBJM[ADJAMFGBOAP] = parameters; GINNOLEJDFM = parameters.HBFMBOHLKPJ;
+        }
+        if (hasShield) { _eclipseShields.Remove(expected); _eclipseShields.Add(replacement, shield); }
+        MoveFormBehaviorKeys(_eclipseOpponentInstances, opponentState, expected, replacement);
+        MoveFormBehaviorKeys(_eclipseInnateInstances, innateState, expected, replacement);
+        bool restored = false;
+        return () =>
+        {
+            if (restored) return;
+            restored = true;
+            LNDLFINJHDB[index] = expected;
+            if (player) { _playerModel = expected; NMNCKBPFCCP = originalParameters; }
+            else
+            {
+                CKNCPOABFBO = expected; AKBNKDBHCEO = originalParameters;
+                IDAAONBIBJM[ADJAMFGBOAP] = originalParameters; GINNOLEJDFM = tactic;
+            }
+            if (hasShield) { _eclipseShields.Remove(replacement); _eclipseShields.Add(expected, shield); }
+            MoveFormBehaviorKeys(_eclipseOpponentInstances, opponentState, replacement, expected);
+            MoveFormBehaviorKeys(_eclipseInnateInstances, innateState, replacement, expected);
+        };
+    }
+
+    private static List<DefinitionId> CaptureFormBehaviorKeys(
+        Dictionary<(Model, DefinitionId), System.Xml.XmlNode> instances, Model expected, Model replacement)
+    {
+        var keys = new List<DefinitionId>();
+        foreach (var pair in instances)
+        {
+            if (pair.Key.Item1 == replacement)
+                throw new InvalidOperationException("Replacement already owns behavior state.");
+            if (pair.Key.Item1 == expected) keys.Add(pair.Key.Item2);
+        }
+        return keys;
+    }
+
+    private static void MoveFormBehaviorKeys(Dictionary<(Model, DefinitionId), System.Xml.XmlNode> instances,
+        List<DefinitionId> keys, Model expected, Model replacement)
+    {
+        foreach (var key in keys)
+        {
+            var state = instances[(expected, key)];
+            instances.Remove((expected, key));
+            instances.Add((replacement, key), state);
+        }
+    }
+
 	private class PMMOPMNOHOO
 	{
 		public int CPOOPPKHFHB;
@@ -57,10 +350,17 @@ public class Fight
 		public int OGOLNFLBLBD;
 	}
 
-	private sealed class EclipseFighterOperations : IModFighterOperations, IModDamageEventSource, IModFighterTargets, IModIncomingHitSource, IModFighterEffects, IModCombatSnapshotSource, IModCombatActivitySource
+	private sealed class EclipseFighterOperations : IModFighterOperations, IModDamageEventSource, IModFighterTargets, IModIncomingHitSource, IModFighterEffects, IModCombatSnapshotSource, IModCombatActivitySource, IModFighterForms
 	{
 		private readonly Fight _fight;
 		private readonly Model _model;
+        public bool TryChangeForm(DefinitionId character, Action<bool, string> complete, out string error)
+        {
+            if (_fight == null || _model == null || complete == null)
+            { error = "Fighter is unavailable."; return false; }
+            return _fight.TryQueueCharacterForm(_model, character,
+                failure => complete(failure == null, failure?.Message ?? string.Empty), out error);
+        }
 
 		public ModDamageEvent DamageEvent { get; }
         public ModIncomingHit IncomingHit { get; }
@@ -837,6 +1137,7 @@ public class Fight
 
 	public void ANIDBLANMIC()
 	{
+        CloseModelTransitions();
 		if (GameUtils.LDBMFAMEMPF && !SystemProperties.AFKGHBJPLOK() && !SystemProperties.NFFOJCHNPJD())
 		{
 			SystemProperties.NHIDOHIJMBG(GameUtils.CDILOOACLKK);
@@ -1187,6 +1488,7 @@ public class Fight
 		if (isRenderFight)
 		{
 			RenderFight();
+            DrainModelTransitions();
 		}
 		if (isRenderCamera)
 		{
@@ -3350,6 +3652,194 @@ public class Fight
 		ACENLMONNPA.AddEventListener(16, HLIOEELKFCP);
 		ACENLMONNPA.AddEventListener(17, EPLCECBMOOB);
 	}
+
+    internal bool TryQueueCharacterForm(Model expected, DefinitionId character, Action<Exception> complete, out string error)
+    {
+        error = string.Empty;
+        if (expected == null || complete == null || !round.processing || _modelTransitionsClosed ||
+            _eclipseFightEndDispatched || (expected != _playerModel && expected != CKNCPOABFBO) ||
+            expected.KKMCHCNOHMB() <= 0 || _modelTransitions.ContainsKey(expected))
+        { error = "Fighter is not available for a form change."; return false; }
+        PreparedFormModel prepared = null;
+        try
+        {
+            var parameters = ModRuntime.BuildFormParameters(character, expected == _playerModel);
+            var itemRules = expected == _playerModel ? _rulesInspector.GetPlayerItemRules() : _rulesInspector.GetEnemyItemRules();
+            _rulesInspector.PrepareItemRules(itemRules);
+            parameters.KMPACCIOOLE(itemRules, false, Math.Max(1, round.round));
+            parameters.KMPACCIOOLE(itemRules, true, Math.Max(1, round.round));
+            parameters.PPFDLIBLNDG();
+            parameters.NOBKKLBJFIL();
+            prepared = new PreparedFormModel(parameters);
+            if (QueuePreparedFighterForm(expected, prepared, complete)) return true;
+            error = "Fighter became unavailable while preparing the form.";
+        }
+        catch (Exception exception) { error = exception.Message; }
+        prepared?.Dispose();
+        return false;
+    }
+
+    // Acceptance transfers preparation ownership to the queued request. Rejection
+    // leaves it with the caller. Native construction and content validation must
+    // finish before entering this boundary; no Lua callbacks run during a swap.
+    internal bool QueuePreparedFighterForm(Model expected, PreparedFormModel prepared, Action<Exception> complete)
+    {
+        var replacement = prepared == null ? null : prepared.Model;
+        if (expected == null || replacement == null || complete == null || expected == replacement ||
+            expected.KMMJCHDKBDO.IsPlayer != replacement.KMMJCHDKBDO.IsPlayer) return false;
+        return QueueModelTransition(expected, () =>
+        {
+            var original = expected.KMMJCHDKBDO;
+            var parameters = replacement.KMMJCHDKBDO;
+            if (original.CIDCNCDFONA <= 0 || parameters.CIDCNCDFONA <= 0)
+                throw new InvalidOperationException("Form health pools must be positive.");
+            parameters.GFNCMLFKBGP(expected.KKMCHCNOHMB() / original.CIDCNCDFONA * parameters.CIDCNCDFONA);
+            parameters.FCOALLOHJNP = original.FCOALLOHJNP;
+            parameters.IsWinner = original.IsWinner;
+            replacement.SetModelPosition(new Vector3f(expected.PLBNCDCFPML()));
+            replacement.NFOOGKCGFAB = expected.KFCNPADAMHA();
+            var enemies = new HashSet<Model>();
+            foreach (var enemy in expected._Enemies)
+                if (enemy != null && enemy.BDJBNOPNCNB() != expected &&
+                    enemy.BDJBNOPNCNB() == enemy && enemies.Add(enemy))
+                    replacement.CJNGMIMHFCC(enemy);
+            using (var bindings = new FormRenderBindings(this, expected, replacement))
+            {
+                // CheckEvent only queues selection. Its first-frame actions run
+                // in the next selector step, after ownership has committed.
+                _SelectAnimation.CheckEvent(EventAnimation.EECEJKADLCK.EVENT_BIRTH, replacement.KDAHHIMLJGG);
+                CommitPreparedForm(expected, prepared, bindings);
+            }
+        }, failure =>
+        {
+            try { prepared.Dispose(); }
+            finally { complete(failure); }
+        });
+    }
+
+    internal void CommitPreparedForm(Model expected, PreparedFormModel prepared, FormRenderBindings bindings)
+    {
+        var replacement = prepared == null ? null : prepared.Model;
+        if (expected == null || replacement == null || bindings == null ||
+            !bindings.Owns(this, expected, replacement) ||
+            (replacement != _playerModel && replacement != CKNCPOABFBO) ||
+            expected == _playerModel || expected == CKNCPOABFBO || _retiredFormBodies.Contains(expected))
+            throw new InvalidOperationException("Prepared form does not own the active replacement.");
+
+        var retired = new HashSet<Model> { expected };
+        foreach (var model in LNDLFINJHDB)
+            if (model != null && model.BDJBNOPNCNB() == expected) retired.Add(model);
+        foreach (var model in HCPGFOCGDAA)
+            if (model != null && model.BDJBNOPNCNB() == expected) retired.Add(model);
+        foreach (var model in JLEFIKJODGG)
+            if (model != null && model.BDJBNOPNCNB() == expected) retired.Add(model);
+        var bodies = new List<Model> { expected };
+        foreach (var body in retired) if (body != expected) bodies.Add(body);
+        for (int index = 0; index < bodies.Count; index++)
+            foreach (var child in bodies[index].KGGIDBLBMDJ())
+                if (child != null && retired.Add(child)) bodies.Add(child);
+        EPBDEDGLHJE.RequireFormReferencesTransferred(retired);
+
+        // Invisibility is represented by the body's active state. Preserve it
+        // rather than unconditionally showing every newly committed form.
+        bool visible = expected.MJNPBMOAFML().activeSelf;
+        bool preparedVisible = replacement.MJNPBMOAFML().activeSelf;
+        try
+        {
+            replacement.MJNPBMOAFML().SetActive(visible);
+            expected.MJNPBMOAFML().SetActive(false);
+        }
+        catch
+        {
+            replacement.MJNPBMOAFML().SetActive(preparedVisible);
+            expected.MJNPBMOAFML().SetActive(visible);
+            throw;
+        }
+        bindings.Commit();
+        prepared.Take();
+        _retiredFormBodies.Add(expected);
+
+        // Ownership has committed. Cleanup failures must not report the swap as
+        // rejected or let disposing the preparation destroy the active fighter.
+        HCPGFOCGDAA.RemoveAll(retired.Contains);
+        JLEFIKJODGG.RemoveAll(retired.Contains);
+        LNDLFINJHDB.RemoveAll(retired.Contains);
+        for (int index = bodies.Count - 1; index >= 0; index--)
+        {
+            var body = bodies[index];
+            try
+            {
+                if (body != expected) RemoveModel(body);
+                else
+                {
+                    // Camera/selector/perk registrations already belong to the
+                    // replacement at this index. Only dispose the retired body.
+                    body.FKIBECCHIJC();
+                    body.IMFOFFFLGOM();
+                }
+            }
+            catch (Exception exception) { UnityEngine.Debug.LogException(exception); }
+        }
+    }
+
+    private void StopModelListening(Model model)
+    {
+        model.RemoveEventListener(2, OnAnimationStart);
+        model.RemoveEventListener(3, OnAnimationEnd);
+        model.RemoveEventListener(0, OnIntervalStart);
+        model.RemoveEventListener(1, OnIntervalEnd);
+        model.RemoveEventListener(4, OnEveryFrame);
+        model.RemoveEventListener(5, EILHKFPKMOF);
+        model.RemoveEventListener(6, DEIOPLMPOHK);
+        model.RemoveEventListener(12, PPDEKDMGIMH);
+        model.RemoveEventListener(18, BHBGIMOHFPI);
+        model.RemoveEventListener(13, GKLNFHKKIAI);
+        model.RemoveEventListener(15, IBONKBLOKNM);
+        model.RemoveEventListener(16, HLIOEELKFCP);
+        model.RemoveEventListener(17, EPLCECBMOOB);
+    }
+
+    internal Action BindFormPresentation(Model expected, Model replacement, bool player)
+    {
+        var viewer = preFight == null ? null : preFight.get_ViewerFight();
+        var panel = viewer == null ? null : (player ? viewer.get_LeftModel() : viewer.get_RightModel());
+        bool attached = false, detached = false, refreshed = false;
+        Action restore = () =>
+        {
+            // The HUD can throw after assigning its parameters. Always attempt
+            // its reverse refresh, and restore event ownership even if it fails.
+            try
+            {
+                if (refreshed && panel != null)
+                    panel.RefreshForm(replacement.KMMJCHDKBDO, expected.KMMJCHDKBDO);
+            }
+            finally
+            {
+                if (attached) { StopModelListening(replacement); attached = false; }
+                if (detached) { SetModelOnListening(expected); detached = false; }
+                refreshed = false;
+            }
+        };
+        try
+        {
+            attached = true;
+            SetModelOnListening(replacement);
+            StopModelListening(expected); detached = true;
+            if (panel != null)
+            {
+                refreshed = true;
+                if (!panel.RefreshForm(expected.KMMJCHDKBDO, replacement.KMMJCHDKBDO))
+                    throw new InvalidOperationException("Fight HUD no longer belongs to the original fighter.");
+            }
+        }
+        catch (Exception original)
+        {
+            try { restore(); }
+            catch (Exception rollback) { throw new AggregateException("Form presentation and restoration failed.", original, rollback); }
+            throw;
+        }
+        return restore;
+    }
 
 	private void UpdateFightData(FightEvent KOJNCHKPLLN = FightEvent.NoneEvent)
 	{

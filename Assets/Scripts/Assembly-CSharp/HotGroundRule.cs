@@ -44,6 +44,19 @@ public class HotGroundRule : AnimationListRule
 
 	private List<LimitedNode> CFPIOKDFJCH = new List<LimitedNode>();
 
+    internal override System.Action PrepareModelRebind(Model expected, Model replacement)
+    {
+        var assignments = new List<System.Action>();
+        foreach (LimitedNode point in CFPIOKDFJCH)
+        {
+            if (point.node == null || expected == null || expected.CLDMEJKGLBA().EGHIDHMENEF(point.name) != point.node) continue;
+            ModelNode target = replacement?.CLDMEJKGLBA()?.EGHIDHMENEF(point.name);
+            if (target == null) throw new System.InvalidOperationException("Form is missing HotGroundRule node: " + point.name);
+            assignments.Add(() => point.node = target);
+        }
+        return assignments.Count == 0 ? (System.Action)null : () => { foreach (var assign in assignments) assign(); };
+    }
+
 	private string _sequenceName;
 
 	private bool DGNPODNAMDA;

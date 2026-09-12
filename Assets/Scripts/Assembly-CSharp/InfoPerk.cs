@@ -285,14 +285,26 @@ public class InfoPerk
 	{
 		int num = ((!CCBEDPIHKAD) ? 1 : (-1));
 		PerkActionSetAttributes aHFKENAALLF = (PerkActionSetAttributes)IBODMPMJELJ.AMKJNPOCODK;
-		foreach (KeyValuePair<string, FunctionExtension> item in aHFKENAALLF.NNBFJDJAAGI())
+        var applied = CCBEDPIHKAD ? IBODMPMJELJ.AppliedAttributes : null;
+        if (applied == null)
+        {
+            // Resolve every expression before mutation, and retain the normalized
+            // deltas so expiry does not reevaluate a changed combat context.
+            applied = new Dictionary<string, int>();
+            foreach (var item in aHFKENAALLF.NNBFJDJAAGI())
+            {
+                var attributes = new Attributes();
+                attributes.Set(item.Key, item.Value.IBCPKBBAFNH().ToInt());
+                int amount = 0;
+                attributes.Get(item.Key, ref amount);
+                applied.Add(item.Key, amount);
+            }
+        }
+        if (!CCBEDPIHKAD) IBODMPMJELJ.AppliedAttributes = applied;
+		foreach (var item in applied)
 		{
 			string key = item.Key;
-			FunctionResult dEIHAOLOPLC = item.Value.IBCPKBBAFNH();
-			Attributes cCODCLGOHKB = new Attributes();
-			cCODCLGOHKB.Set(key, dEIHAOLOPLC.ToInt());
-			int OEMALIFPGPO = 0;
-			bool flag = cCODCLGOHKB.Get(key, ref OEMALIFPGPO);
+			int OEMALIFPGPO = item.Value;
 			int OEMALIFPGPO2 = 0;
 			IBODMPMJELJ.KJDFJPBIGJC.KMMJCHDKBDO.IBLHIAHECLK.Get(key, ref OEMALIFPGPO2, false, true);
 			IBODMPMJELJ.KJDFJPBIGJC.KMMJCHDKBDO.IBLHIAHECLK.Set(key, OEMALIFPGPO2 + OEMALIFPGPO * num, true);
@@ -303,6 +315,58 @@ public class InfoPerk
 			}
 		}
 	}
+
+    internal System.Action TransferHealthEffect(PerksStage.ActionPerk action, Model expected, Model replacement)
+    {
+        if (action == null || expected == null || replacement == null || expected == replacement)
+            throw new System.ArgumentException("Health effect transfer requires distinct models.");
+        if (!NBFBBDHELEJ.Contains(action) || !(action.AMKJNPOCODK is ModHealthChange) ||
+            (action.KJDFJPBIGJC != expected && action.BIKLKJMNGKP != expected))
+            throw new System.InvalidOperationException("The active health effect does not refer to this form.");
+        var target = action.KJDFJPBIGJC;
+        var source = action.BIKLKJMNGKP;
+        if (target == expected) action.KJDFJPBIGJC = replacement;
+        if (source == expected) action.BIKLKJMNGKP = replacement;
+        return () => { action.KJDFJPBIGJC = target; action.BIKLKJMNGKP = source; };
+    }
+
+    // The form coordinator retains the returned rollback until all registrations
+    // commit. This moves one active attribute effect without restarting its timer.
+    internal System.Action TransferAttributeEffect(PerksStage.ActionPerk action, Model expected, Model replacement)
+    {
+        if (action == null || expected == null || replacement == null || expected == replacement)
+            throw new System.ArgumentException("Attribute transfer requires an action and distinct models.");
+        if (!NBFBBDHELEJ.Contains(action) || !(action.AMKJNPOCODK is PerkActionSetAttributes) ||
+            action.KJDFJPBIGJC != expected || action.AppliedAttributes == null)
+            throw new System.InvalidOperationException("The active attribute effect has no matching applied state.");
+        var oldAttributes = expected.KMMJCHDKBDO.IBLHIAHECLK;
+        var newAttributes = replacement.KMMJCHDKBDO.IBLHIAHECLK;
+        if (ReferenceEquals(oldAttributes, newAttributes))
+            throw new System.InvalidOperationException("Form parameters must own separate attributes.");
+        var beforeOld = new Attributes(oldAttributes);
+        var beforeNew = new Attributes(newAttributes);
+        var afterOld = new Attributes(oldAttributes);
+        var afterNew = new Attributes(newAttributes);
+        foreach (var delta in action.AppliedAttributes)
+        {
+            int oldValue = 0, newValue = 0;
+            afterOld.Get(delta.Key, ref oldValue, false, true);
+            afterNew.Get(delta.Key, ref newValue, false, true);
+            afterOld.Set(delta.Key, checked(oldValue - delta.Value), true);
+            afterNew.Set(delta.Key, checked(newValue + delta.Value), true);
+        }
+        var source = action.BIKLKJMNGKP;
+        oldAttributes.Clear(); oldAttributes.AddRange(afterOld);
+        newAttributes.Clear(); newAttributes.AddRange(afterNew);
+        action.KJDFJPBIGJC = replacement;
+        if (source == expected) action.BIKLKJMNGKP = replacement;
+        return () =>
+        {
+            oldAttributes.Clear(); oldAttributes.AddRange(beforeOld);
+            newAttributes.Clear(); newAttributes.AddRange(beforeNew);
+            action.KJDFJPBIGJC = expected; action.BIKLKJMNGKP = source;
+        };
+    }
 
 	private void APMFPHOALEO(PerksStage.ActionPerk IBODMPMJELJ, bool CCBEDPIHKAD)
 	{

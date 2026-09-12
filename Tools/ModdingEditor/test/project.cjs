@@ -8,7 +8,7 @@ const { createMod } = require('../src/scaffold.cjs');
 const template = path.resolve(__dirname, '../templates/weapon');
 const header = 'local sf2 = require("sf2")\n';
 
-for (const name of ['programmable-ai', 'generated-expedition']) test(name+' example and starter share a valid public contract', async () => {
+for (const name of ['programmable-ai', 'generated-expedition', 'shifting-guardian']) test(name+' example and starter share a valid public contract', async () => {
     const directory=path.resolve(__dirname,'../../../Mods/example.'+name);
     const mod=await p.indexMod(directory);
     assert.deepEqual(mod.issues,[]);
@@ -209,6 +209,12 @@ test('Eclipse reward example validates its manifest and reward patch', async () 
 
 test('katana achievement example validates', async () => {
  const dir=path.resolve(__dirname,'../../../Mods/example.katana-achievement');
+ const mod=await p.indexMod(dir);assert.deepEqual(mod.issues,[]);
+ assert.deepEqual(p.analyze(await fs.readFile(path.join(dir,'scripts/main.lua'),'utf8'),mod).issues,[]);
+});
+
+test('shifting guardian validates the form request contract', async () => {
+ const dir=path.resolve(__dirname,'../../../Mods/example.shifting-guardian');
  const mod=await p.indexMod(dir);assert.deepEqual(mod.issues,[]);
  assert.deepEqual(p.analyze(await fs.readFile(path.join(dir,'scripts/main.lua'),'utf8'),mod).issues,[]);
 });

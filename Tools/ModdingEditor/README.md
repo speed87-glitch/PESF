@@ -282,3 +282,10 @@ Profile item/perk queries support qualified ID strings in API 0.38, including ID
 API 0.39 adds typed equipment-array completion for `sf2.profile.equipment()`.
 
 API 0.40 adds battle_result completion and typed outcome/equipment payload fields.
+
+API 0.53 adds `fighter:change_form(character)` and `Eclipse.FormRequest`
+(`queued`, `applied`, `failed`, optional `error`). Requires `combat.transform`
+and a warrior handle registered by the requesting mod. Native form acceptance
+and remaining effect cases are still under verification; see the combat callback
+reference before relying on this experimental workflow.
+The complete Shifting Guardian starter is in `templates/shifting-guardian/`; copy it to your Mods directory to inspect the result-driven transformation HUD.

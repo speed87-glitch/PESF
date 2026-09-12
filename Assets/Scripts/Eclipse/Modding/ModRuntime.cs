@@ -18,16 +18,67 @@ namespace Eclipse.Modding
         private static Roster _profileRoster;
         private static bool _sceneNavigationInProgress;
         private static XmlNode _lotteryProfileNode;
-        private static int _lotterySaveState; // 0 idle, 1 settling, 2 failed: reload before saving.
+        private static int _profileMutationState; // 0 idle, 1 settling, 2 failed: reload before saving.
         private static ModQuestLotteryAction _battleLotteryPresentation;
-        internal static bool HasPendingLottery => _lotterySaveState != 0 || _lotteryProfileNode?["EclipseLotteryClaim"] is XmlElement saved &&
+        internal static bool HasPendingLottery => _profileMutationState != 0 || _lotteryProfileNode?["EclipseLotteryClaim"] is XmlElement saved &&
             (saved.GetAttribute("State") == "prepared" || (saved["BattleEnd"] != null && saved["BattleEnd"].GetAttribute("Dispatched") != "1"));
 
         internal static bool DeferProfileSave()
         {
-            if (_lotterySaveState == 2)
-                throw new InvalidOperationException("Lottery settlement failed. Reload the profile before saving further changes.");
-            return _lotterySaveState == 1;
+            if (_profileMutationState == 2)
+                throw new InvalidOperationException("Profile settlement failed. Reload the profile before saving further changes.");
+            return _profileMutationState == 1;
+        }
+
+        internal static bool SettleItemPurchase(ItemInfo item, int quantity, Func<bool> apply)
+        {
+            if (item == null || quantity <= 0 || apply == null) return false;
+            if (_profileMutationState != 0) return false;
+            // Leave bootstrap/unsupported legacy identities on their original path.
+            // History is recorded only when the item resolves in the active catalog.
+            if (_profileRoster == null || _scripts == null || !(_lotteryProfileNode is XmlElement) ||
+                !_scripts.Content.TryResolveRuntimeItem(item.Name, item.NodeXML?.OuterXml, out var id)) return apply();
+            return SettlePurchase(id, quantity, null, null, apply);
+        }
+
+        // The caller must preflight before entering and return only after the native
+        // balance and grant succeed. False/exception may follow partial mutations;
+        // neither is automatically rolled back or retried in the current profile.
+        internal static bool SettlePurchase(DefinitionId item, int quantity, long? maximumTransactions,
+            long? maximumUnits, Func<bool> apply)
+        {
+            if (apply == null) throw new ArgumentNullException(nameof(apply));
+            if (_profileRoster == null || !(_lotteryProfileNode is XmlElement profile))
+                throw new InvalidOperationException("Purchase settlement requires an active profile.");
+            if (_profileMutationState != 0) return false;
+            var ledger = new ModPurchaseLedger(profile);
+            if (!ledger.TryReserve(item, quantity, maximumTransactions, maximumUnits, out var reservation)) return false;
+            var owner = _profileRoster;
+            int generation = StoryEvents.ProfileGeneration;
+            using (reservation)
+            {
+                StoryEvents.RunDeferred(() =>
+                {
+                    _profileMutationState = 1;
+                    try
+                    {
+                        if (!apply()) throw new InvalidOperationException("Purchase did not complete; reload the profile before retrying.");
+                        if (!ReferenceEquals(owner, _profileRoster) || generation != StoryEvents.ProfileGeneration ||
+                            !ReferenceEquals(profile, _lotteryProfileNode))
+                            throw new InvalidOperationException("Profile changed during purchase settlement.");
+                        reservation.Commit();
+                        owner.GGGEHAGCLGC(true);
+                        _profileMutationState = 0;
+                        ListSF.ELEBLBJKDBI().OnAuthenticate(true);
+                    }
+                    catch
+                    {
+                        _profileMutationState = 2;
+                        throw;
+                    }
+                });
+            }
+            return true;
         }
 
         internal static bool IsProfileSnapshotPath(string path)
@@ -125,6 +176,12 @@ namespace Eclipse.Modding
             Debug.Log("[ModScripts] " + _scripts.RuntimeName + "; " + _scripts.ActiveMods.Count +
                 " mod(s) active; " + _scripts.Diagnostics.Count + " diagnostic(s).");
             return _scripts;
+        }
+
+        internal static ModelParameters BuildFormParameters(DefinitionId character, bool player)
+        {
+            if (_legacyContent == null) throw new ModContentException("Game content is not ready for a form change.");
+            return _legacyContent.BuildFormParameters(character, player);
         }
 
         public static void StartGameContent()
@@ -236,11 +293,11 @@ namespace Eclipse.Modding
 
         public static void RecordSaveContext(System.Xml.XmlNode warrior, Roster roster = null)
         {
-            if (_lotterySaveState == 1) throw new InvalidOperationException("Cannot replace the profile during lottery settlement.");
+            if (_profileMutationState == 1) throw new InvalidOperationException("Cannot replace the profile during settlement.");
             _battleLotteryPresentation?.Dispose();
             _battleLotteryPresentation = null;
             _lotteryProfileNode = warrior;
-            _lotterySaveState = 0;
+            _profileMutationState = 0;
             StoryEvents.UnbindProfile();
             _profileRoster = null;
             DojoSelection.Unbind();
@@ -263,7 +320,7 @@ namespace Eclipse.Modding
 
         public static void UnbindProfile()
         {
-            if (_lotterySaveState == 1) throw new InvalidOperationException("Cannot unload the profile during lottery settlement.");
+            if (_profileMutationState == 1) throw new InvalidOperationException("Cannot unload the profile during settlement.");
             _battleLotteryPresentation?.Dispose();
             _battleLotteryPresentation = null;
             _lotteryProfileNode = null;
@@ -388,13 +445,13 @@ namespace Eclipse.Modding
                 if (_prize.KBMDJACLAOH.Count != 0)
                     throw new NotSupportedException("Native resistance reward granting is not implemented.");
                 if (_saved != null && (_saved.ParentNode != _lotteryProfileNode || _saved.GetAttribute("State") != "prepared")) return false;
-                if (_lotterySaveState != 0) throw new InvalidOperationException("Another lottery settlement is active or requires profile reload.");
+                if (_profileMutationState != 0) throw new InvalidOperationException("Another lottery settlement is active or requires profile reload.");
                 var acknowledge = ResolveLotteryAcknowledgement(_saved);
                 // Consume before callbacks. Exceptions may follow partial native
                 // mutation, so this live claim must never be retried automatically.
                 _consumed=true;
                 StoryEvents.RunDeferred(()=>{
-                    _lotterySaveState = 1;
+                    _profileMutationState = 1;
                     try
                     {
                         ListSF.ELEBLBJKDBI().IMDGMNFHFCN(_prize);
@@ -404,14 +461,14 @@ namespace Eclipse.Modding
                         _owner.GGGEHAGCLGC(true);
                         acknowledge?.Invoke();
                         if (_saved != null) _saved.SetAttribute("State", "claimed");
-                        _lotterySaveState = 0;
+                        _profileMutationState = 0;
                         if (_saved != null) ListSF.ELEBLBJKDBI().OnAuthenticate(true);
                     }
                     catch
                     {
                         // Disk retains the prepared snapshot or a recoverable committed
                         // snapshot. Do not later autosave partial in-memory mutations.
-                        _lotterySaveState = 2;
+                        _profileMutationState = 2;
                         throw;
                     }
                 });
@@ -458,7 +515,7 @@ namespace Eclipse.Modding
             var saved = _lotteryProfileNode?["EclipseLotteryClaim"];
             var continuation = saved?["BattleEnd"];
             if (continuation == null || continuation.GetAttribute("Dispatched") == "1") return;
-            if (_profileRoster == null || _lotterySaveState != 0 || saved.GetAttribute("State") != "claimed")
+            if (_profileRoster == null || _profileMutationState != 0 || saved.GetAttribute("State") != "claimed")
                 throw new InvalidOperationException("Battle lottery must be claimed before its fight-end event.");
             if (continuation.GetAttribute("Format") != "1" ||
                 (continuation.GetAttribute("Raid") != "0" && continuation.GetAttribute("Raid") != "1") ||
@@ -472,15 +529,15 @@ namespace Eclipse.Modding
                 FOODLENBJGI = saved["Prize"]?["Item"]?.GetAttribute("Name") ?? string.Empty };
             bool queued = false;
             StoryEvents.RunDeferred(() => {
-                _lotterySaveState = 1;
+                _profileMutationState = 1;
                 try
                 {
                     queued = ListSF.ELEBLBJKDBI().QueueLotteryFightEnd(context, continuation.GetAttribute("Raid") == "1");
                     continuation.SetAttribute("Dispatched", "1");
-                    _lotterySaveState = 0;
+                    _profileMutationState = 0;
                     ListSF.ELEBLBJKDBI().OnAuthenticate(true);
                 }
-                catch { _lotterySaveState = 2; throw; }
+                catch { _profileMutationState = 2; throw; }
             });
             ListSF.ELEBLBJKDBI().HAOHNNFLOGK = new QuestParameters();
             _battleLotteryPresentation?.Dispose();
@@ -577,7 +634,7 @@ namespace Eclipse.Modding
         internal static ModQuestInvocationLedger GetQuestLotteryInvocation(QuestStage stage)
         {
             if (stage == null) throw new NotSupportedException("Lottery actions require a top-level quest stage.");
-            if (_profileRoster == null || _lotteryProfileNode == null || _lotterySaveState != 0)
+            if (_profileRoster == null || _lotteryProfileNode == null || _profileMutationState != 0)
                 throw new InvalidOperationException("An active, writable profile is required for quest rewards.");
             if (stage.allowDoubles) throw new NotSupportedException("Concurrent runs of a lottery quest require separate invocation identities.");
             if (stage.EclipseLotteryInvocations != null)
@@ -626,7 +683,7 @@ namespace Eclipse.Modding
         {
             var ledger = stage.EclipseLotteryInvocations;
             if (ledger == null) return false;
-            if (_lotterySaveState != 0 || !ledger.BelongsTo(_lotteryProfileNode))
+            if (_profileMutationState != 0 || !ledger.BelongsTo(_lotteryProfileNode))
                 throw new InvalidOperationException("Quest lottery cannot finish in this profile state.");
             ledger.CloseRun();
             return true;
@@ -638,7 +695,7 @@ namespace Eclipse.Modding
             var owner=_profileRoster;
             if(owner==null)throw new InvalidOperationException("No active game profile is available.");
             if (_lotteryProfileNode == null) throw new InvalidOperationException("No profile save node is available.");
-            if (_lotterySaveState != 0) throw new InvalidOperationException("Reload the profile before preparing another lottery.");
+            if (_profileMutationState != 0) throw new InvalidOperationException("Reload the profile before preparing another lottery.");
             if (invocation != null && !invocation.BelongsTo(_lotteryProfileNode))
                 throw new InvalidOperationException("Quest invocation belongs to another profile.");
             if (invocation != null && invocation.IsCompleted(actionIndex)) return null;
@@ -703,7 +760,7 @@ namespace Eclipse.Modding
         {
             var saved = _lotteryProfileNode?["EclipseLotteryClaim"];
             if (saved == null) return null;
-            if (_profileRoster == null || _lotterySaveState != 0) throw new InvalidOperationException("Profile is unavailable for lottery recovery.");
+            if (_profileRoster == null || _profileMutationState != 0) throw new InvalidOperationException("Profile is unavailable for lottery recovery.");
             if (saved.GetAttribute("Format") != "1") throw new InvalidDataException("Unknown saved lottery claim format.");
             if (saved.GetAttribute("State") == "claimed") return null;
             if (saved.GetAttribute("State") != "prepared") throw new InvalidDataException("Invalid saved lottery claim state.");

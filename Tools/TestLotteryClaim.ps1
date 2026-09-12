@@ -57,7 +57,7 @@ class Program {
   public static XmlElement Write(XmlDocument d,FightResult.ResultPrizeStruct p){var e=d.CreateElement("Prize");e.SetAttribute("Token",p.Token.ToString());return e;}
   public static FightResult.ResultPrizeStruct Read(XmlElement e,Func<string,int,int,ItemInfo> i,Func<string,object> c,Func<string,object> r)=>new FightResult.ResultPrizeStruct{Token=int.Parse(e.GetAttribute("Token"))};
  }
- static XmlNode _lotteryProfileNode;static int _lotterySaveState;
+ static XmlNode _lotteryProfileNode;static int _profileMutationState;
  static Roster _profileRoster;static bool Available=true;static int Builds;static Action BuildAction;
  static bool TrySelectLotterySlot(RewardLottery l,int level,double sample,Func<MANJCIGJPMK,bool> predicate,out MANJCIGJPMK slot){slot=new MANJCIGJPMK();return Available&&(predicate==null||predicate(slot));}
  static FightResult.ResultPrizeStruct BuildLotteryPrize(MANJCIGJPMK slot,int level){Builds++;BuildAction?.Invoke();return new FightResult.ResultPrizeStruct{Token=Builds};}
@@ -76,7 +76,7 @@ class Program {
  /* PENDING LOTTERY */
  static int checks;static void Check(bool value,string message){checks++;if(!value)throw new Exception(message);}
  static void Reject(Action action,string message){try{action();}catch(InvalidOperationException){checks++;return;}throw new Exception(message);}
- static void Reset(){_profileRoster=new Roster();StoryEvents.Clear();StoryEvents.BindProfile();ListSF.Grant=null;ListSF.Grants=0;ListSF.Writes=0;ListSF.Saved=null;Builds=0;BuildAction=null;Available=true;_lotterySaveState=0;var d=new XmlDocument();d.LoadXml("<Warrior/>");_lotteryProfileNode=d.DocumentElement;}
+ static void Reset(){_profileRoster=new Roster();StoryEvents.Clear();StoryEvents.BindProfile();ListSF.Grant=null;ListSF.Grants=0;ListSF.Writes=0;ListSF.Saved=null;Builds=0;BuildAction=null;Available=true;_profileMutationState=0;var d=new XmlDocument();d.LoadXml("<Warrior/>");_lotteryProfileNode=d.DocumentElement;}
  static LotteryClaim Prepare()=>PrepareLotteryClaim(new RewardLottery(),0.5,null);
  static void Main(){
   Reset();var claim=Prepare();Check(Builds==1&&ListSF.Grants==0,"Preparation granted/repeated draw");Check(claim.TryClaim()&&ListSF.Grants==1&&_profileRoster.Saves==1,"False level-up return treated as failure");Check(!claim.TryClaim()&&ListSF.Grants==1,"Repeated claim");

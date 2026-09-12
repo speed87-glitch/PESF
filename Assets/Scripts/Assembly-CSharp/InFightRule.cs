@@ -3,6 +3,7 @@ using System.Xml;
 
 public class InFightRule : Rule
 {
+    internal virtual System.Action PrepareModelRebind(Model expected, Model replacement) { return null; }
 	protected RuleAppliance NDBMMPENJNJ;
 
 	protected HashSet<FightEvent> PDIDNJAAPIH;

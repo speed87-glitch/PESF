@@ -110,15 +110,78 @@ public class SelectAnimation
 		_ExplicitBirthModels.Clear();
 	}
 
+    internal bool ReplaceModel(Model expected, Model replacement)
+    {
+        if (expected == null || replacement == null || BPIFJBJBKHA.Contains(replacement)) return false;
+        int index = BPIFJBJBKHA.IndexOf(expected);
+        if (index < 0) return false;
+        var nextModels = new List<Model>(BPIFJBJBKHA);
+        nextModels[index] = replacement;
+        var nextConditions = new List<ModelConditions>();
+        foreach (var model in nextModels) nextConditions.Add(model.EBABHGHPLFK());
+        // Native animation definitions cache node bindings by side. Preparation
+        // here is NOT read-only; restore the live side's bindings if it fails.
+        try { replacement.UpdateAnimationParameters(nextModels); }
+        catch
+        {
+            expected.UpdateAnimationParameters(BPIFJBJBKHA);
+            throw;
+        }
+        replacement.AddEventListener(2, OnAnimationStart);
+        replacement.AddEventListener(3, OnAnimationEnd);
+        replacement.AddEventListener(0, OnIntervalStart);
+        replacement.AddEventListener(1, OnIntervalEnd);
+        replacement.AddEventListener(4, OnEveryFrame);
+        replacement.AddEventListener(6, OnModelCreate);
+        replacement.AddEventListener(10, OnKeyPress);
+        replacement.AddEventListener(11, OnKeyRelease);
+        RemoveModel(expected);
+        BPIFJBJBKHA.Insert(index, replacement);
+        _ModelsConditions = nextConditions;
+        return true;
+    }
+
+    // Only for a synchronous form exchange between simulation steps. The event
+    // records themselves are not mutated by ReplaceModel, so retain their identity.
+    internal System.Action CapturePendingEvents()
+    {
+        var events = CFKGCLIKKOC.ToArray();
+        var intervalEnds = KPHAPCNOPNP.ToArray();
+        var births = _ExplicitBirthModels.ToArray();
+        var created = HKOBFBADDJN.ToArray();
+        var triggers = IJIHPHBMEOI.ToArray();
+        return () =>
+        {
+            CFKGCLIKKOC.Clear(); CFKGCLIKKOC.AddRange(events);
+            KPHAPCNOPNP.Clear(); KPHAPCNOPNP.AddRange(intervalEnds);
+            _ExplicitBirthModels.Clear(); _ExplicitBirthModels.AddRange(births);
+            HKOBFBADDJN.Clear(); HKOBFBADDJN.AddRange(created);
+            IJIHPHBMEOI.Clear(); IJIHPHBMEOI.AddRange(triggers);
+        };
+    }
+
 	public void RemoveModel(Model ACENLMONNPA)
 	{
+		if (ACENLMONNPA == null) return;
+		ACENLMONNPA.RemoveEventListener(2, OnAnimationStart);
+		ACENLMONNPA.RemoveEventListener(3, OnAnimationEnd);
+		ACENLMONNPA.RemoveEventListener(0, OnIntervalStart);
+		ACENLMONNPA.RemoveEventListener(1, OnIntervalEnd);
+		ACENLMONNPA.RemoveEventListener(4, OnEveryFrame);
+		ACENLMONNPA.RemoveEventListener(6, OnModelCreate);
+		ACENLMONNPA.RemoveEventListener(10, OnKeyPress);
+		ACENLMONNPA.RemoveEventListener(11, OnKeyRelease);
+		HMOPJBLOKGB(ACENLMONNPA, CFKGCLIKKOC);
+		HMOPJBLOKGB(ACENLMONNPA, KPHAPCNOPNP);
+		_ExplicitBirthModels.RemoveAll(model => model == ACENLMONNPA);
+		HKOBFBADDJN.RemoveAll(model => model == ACENLMONNPA);
+		IJIHPHBMEOI.RemoveAll(trigger => trigger.KJDFJPBIGJC == ACENLMONNPA);
 		for (int num = BPIFJBJBKHA.Count - 1; num >= 0; num--)
 		{
 			if (BPIFJBJBKHA[num] == ACENLMONNPA)
 			{
-				BPIFJBJBKHA.Remove(ACENLMONNPA);
-				HMOPJBLOKGB(ACENLMONNPA, CFKGCLIKKOC);
-				HMOPJBLOKGB(ACENLMONNPA, KPHAPCNOPNP);
+				BPIFJBJBKHA.RemoveAt(num);
+				if (num < _ModelsConditions.Count) _ModelsConditions.RemoveAt(num);
 			}
 		}
 	}
@@ -1001,7 +1064,7 @@ public class SelectAnimation
 	{
 		for (int num = CDIELLOLINA.Count - 1; num >= 0; num--)
 		{
-			if (CDIELLOLINA[num].KJDFJPBIGJC == ACENLMONNPA)
+			if (CDIELLOLINA[num].KJDFJPBIGJC == ACENLMONNPA || CDIELLOLINA[num].GAIBPAGPEGK == ACENLMONNPA)
 			{
 				CDIELLOLINA.RemoveAt(num);
 			}

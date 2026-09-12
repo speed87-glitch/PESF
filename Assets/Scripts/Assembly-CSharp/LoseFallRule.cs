@@ -14,6 +14,14 @@ public class LoseFallRule : AnimationListRule
 
 	private ModelNode _node;
 
+    internal override System.Action PrepareModelRebind(Model expected, Model replacement)
+    {
+        if (_node == null || expected == null || expected.CLDMEJKGLBA().EGHIDHMENEF(_nodeName) != _node) return null;
+        ModelNode target = replacement?.CLDMEJKGLBA()?.EGHIDHMENEF(_nodeName);
+        if (target == null) throw new System.InvalidOperationException("Form is missing LoseFallRule node: " + _nodeName);
+        return () => _node = target;
+    }
+
 	private float NCOIMBKECMD;
 
 	private float IBLJKECKGKP;

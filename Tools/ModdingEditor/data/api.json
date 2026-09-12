@@ -1,5 +1,5 @@
 {
-  "apiVersion": "0.52.0",
+  "apiVersion": "0.53.0",
   "functions": {
     "sf2.items.register_weapon": {
       "params": {
@@ -1179,7 +1179,7 @@
       "returns": "Nothing.",
       "capability": null,
       "url": "https://dawc17.github.io/ProjectEclipse/api/ui/#sf2uiset_checked",
-      "summary": "",
+      "summary": "The checkmark reflects the authored `checked` value from the initial mount, including unchecked toggles. Programmatic changes update the checkmark immediately.",
       "requires": "API 0.22, an open owned view and a toggle ID. No additional capability.",
       "when": "Set a toggle's boolean state without triggering `on_change`."
     },
@@ -1342,6 +1342,13 @@
     "on_decide"
   ],
   "fighterMethods": {
+    "change_form": {
+      "params": {
+        "character": "Eclipse.WarriorHandle"
+      },
+      "returns": "Eclipse.FormRequest",
+      "capability": "combat.transform"
+    },
     "snapshot": {
       "params": {},
       "returns": "Eclipse.CombatSnapshot|nil",
@@ -1750,6 +1757,12 @@
     "OutgoingFighter": {
       "fields": {},
       "parent": "Fighter"
+    },
+    "FormRequest": {
+      "fields": {
+        "status": "\"queued\"|\"applied\"|\"failed\"",
+        "error?": "string"
+      }
     },
     "WeaponDefinition": {
       "fields": {

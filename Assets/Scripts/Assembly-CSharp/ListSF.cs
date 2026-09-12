@@ -557,6 +557,7 @@ public class ListSF
 	public static CheckItems CLKECIFEMNB(ItemInfo item, ItemAction LFLGCDNKNJI, int count = 1)
 	{
 		if (item == null || count <= 0) return new CheckItems { Value = -1L };
+		if (!HasPurchaseCapacity(item, LFLGCDNKNJI, count)) return new CheckItems { Value = -1L };
 		ELEBLBJKDBI().JLEMHLLLCLD();
 		CheckItems bJEBPDNMNAE = new CheckItems();
 		Roster nKGLHEGIKKP = CCDKHLAMKKO();
@@ -641,9 +642,32 @@ public class ListSF
 		return unitPrice * count;
 	}
 
+	internal static bool CanIncrementItemCount(int existingCount, int count)
+	{
+		return existingCount >= 0 && count > 0 && count <= int.MaxValue - existingCount;
+	}
+
+	private static bool HasPurchaseCapacity(ItemInfo item, ItemAction action, int count)
+	{
+		// Upgrade/delivery routes do not acquire another copy of the base item.
+		if (item.ParentItem != null || (action != ItemAction.Item_Buy_Gold &&
+			action != ItemAction.Item_Buy_Ruby && action != ItemAction.Item_Consumable)) return true;
+		UserItem existing = CMGOCLGHNLH(item.Name);
+		return CanIncrementItemCount(existing == null ? 0 : existing.OFOPFCJNEBL(), count);
+	}
+
 	public static bool KCBCGDFKNME(ItemInfo item, ItemAction LFLGCDNKNJI, long FLCBMGGIDDA, int count = 1, Action<object> callback = null)
 	{
 		if (item == null || count <= 0) return false;
+		if (!HasPurchaseCapacity(item, LFLGCDNKNJI, count)) return false;
+		if (LFLGCDNKNJI == ItemAction.Item_Buy_Gold || LFLGCDNKNJI == ItemAction.Item_Buy_Ruby || LFLGCDNKNJI == ItemAction.Item_Consumable)
+			return Eclipse.Modding.ModRuntime.SettleItemPurchase(item, count,
+				() => ApplyShopPurchase(item, LFLGCDNKNJI, FLCBMGGIDDA, count, callback));
+		return ApplyShopPurchase(item, LFLGCDNKNJI, FLCBMGGIDDA, count, callback);
+	}
+
+	private static bool ApplyShopPurchase(ItemInfo item, ItemAction LFLGCDNKNJI, long FLCBMGGIDDA, int count, Action<object> callback)
+	{
 		if (item != null)
 		{
 			Roster nKGLHEGIKKP = CCDKHLAMKKO();
@@ -2696,6 +2720,30 @@ public class ListSF
 			num++;
 		}
 	}
+
+    internal ModelParameters CreateFormParameters(XmlNode node, bool player)
+    {
+        if (node == null || node.Name != "Warrior")
+            throw new ArgumentException("A form requires a Warrior definition.");
+        // Own the projected node: native item selection can annotate it later.
+        var document = new XmlDocument();
+        var owned = document.ImportNode(node, true);
+        document.AppendChild(owned);
+        string templateName = owned.Attributes["Template"]?.Value ?? string.Empty;
+        ModelParameters parameters;
+        if (templateName.Length == 0) parameters = IAOBIMJFBMH(owned, null);
+        else
+        {
+            var template = CNFBCBDPKCI(templateName);
+            if (template == null || template.KEJDJHAGBMK == null)
+                throw new InvalidOperationException("Form template is unavailable: " + templateName);
+            parameters = CNMFNFDIOOK(template.KEJDJHAGBMK, owned);
+        }
+        if (parameters == null) throw new InvalidOperationException("Form parameters could not be constructed.");
+        parameters.IsPlayer = player;
+        parameters.IBBALIJOJMC = SceneTypes.SceneFight;
+        return parameters;
+    }
 
 	private ModelParameters CNMFNFDIOOK(ModelParameters KPAICOOKACB, XmlNode node)
 	{

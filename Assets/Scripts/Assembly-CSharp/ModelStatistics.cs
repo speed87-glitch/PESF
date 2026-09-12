@@ -233,6 +233,12 @@ public class ModelStatistics
 		_model = ACENLMONNPA;
 	}
 
+    internal void RebindFormOwner(Model model)
+    {
+        if (model == null) throw new System.ArgumentNullException(nameof(model));
+        _model = model;
+    }
+
 	private AttackStatistics IAMEMEDKMOB(bool MNJPFPLKNFA, InfoAnimation DBOLBEOCEME)
 	{
 		Dictionary<InfoAnimation, AttackStatistics> dictionary = ((!MNJPFPLKNFA) ? HIJMNFKPJOJ : OJMNFIAGGFI);

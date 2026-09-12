@@ -804,6 +804,16 @@ namespace Eclipse.Modding
             }
         }
 
+        internal ModelParameters BuildFormParameters(DefinitionId character, bool player)
+        {
+            if (!_content.TryGetWarrior(character, out var warrior))
+                throw new ModContentException("Form character is not registered: " + character);
+            var document = new XmlDocument();
+            var node = BuildWarriorNode(document, warrior);
+            document.AppendChild(node);
+            return ListSF.ELEBLBJKDBI().CreateFormParameters(node, player);
+        }
+
         private XmlElement BuildWarriorNode(XmlDocument document, WarriorDefinition warrior)
         {
             XmlElement node = document.CreateElement("Warrior");
