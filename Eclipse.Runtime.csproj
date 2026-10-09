@@ -102,6 +102,7 @@
     <Compile Include="Assets/Scripts/Eclipse/Runtime/Modding/AssetProvider.cs" />
     <Compile Include="Assets/Scripts/Eclipse/Runtime/Modding/ModTrialRules.cs" />
     <Compile Include="Assets/Scripts/Eclipse/Runtime/Modding/ModContentP3.cs" />
+    <Compile Include="Assets/Scripts/Eclipse/Runtime/Modding/ModIoData.cs" />
     <Compile Include="Assets/Scripts/Eclipse/Runtime/Modding/ModMoveForks.cs" />
     <Compile Include="Assets/Scripts/Eclipse/Runtime/Modding/ModRoundOutcomes.cs" />
     <Compile Include="Assets/Scripts/Eclipse/Runtime/Modding/ModManifest.cs" />

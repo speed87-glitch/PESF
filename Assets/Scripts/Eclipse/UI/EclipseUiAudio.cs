@@ -152,6 +152,29 @@ namespace Eclipse.UI
             self.effects.PlayOneShot(clip, entry.Volume * SoundController.GetSoundVolume());
         }
 
+        // --- Title logo ---------------------------------------------------------------------
+
+        // Loads the logo intro's sounds ahead of time so playing them never hitches.
+        public static void PrepareLogoSounds()
+        {
+            var self = Instance;
+            self.Clip("EclipseTitle/title_stamp");
+            self.Clip("EclipseTitle/title_choir");
+        }
+
+        // The "2" seal landing, and the choir's "aah" as the name appears under it.
+        public static void PlayLogoStamp() { PlayTitleClip("EclipseTitle/title_stamp", .7f); }
+        public static void PlayLogoChoir() { PlayTitleClip("EclipseTitle/title_choir", .5f); }
+
+        private static void PlayTitleClip(string path, float volume)
+        {
+            var self = Instance;
+            var clip = self.Clip(path);
+            if (clip == null) return;
+            self.effects.pitch = 1f;
+            self.effects.PlayOneShot(clip, volume * SoundController.GetSoundVolume());
+        }
+
         // Plays a Resources music path; a different track than the one playing starts fresh.
         public static void StartTitleMusic(string path, float fadeSeconds = MusicFadeSeconds)
         {

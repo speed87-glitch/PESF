@@ -98,10 +98,12 @@ namespace Eclipse.UI
             var name = play.GetComponentInChildren<Text>();
             name.supportRichText = false; name.fontSize = 23;
             name.resizeTextForBestFit = true; name.resizeTextMinSize = 17; name.resizeTextMaxSize = 23;
-            name.rectTransform.sizeDelta = new Vector2(640, 32);
+            // Clear the stroke's pointed head and its ragged top edge.
+            name.rectTransform.anchoredPosition = new Vector2(54, -8);
+            name.rectTransform.sizeDelta = new Vector2(620, 30);
             play.GetComponent<EclipseUiButton>().Rehome();
             string summary = save.Error == null ? CampaignSummary(save) : "Save details could not be read";
-            var detail = Label(play.transform, summary, 30, 33, 640, 23, 15, new Color(Paper.r, Paper.g, Paper.b, .85f));
+            var detail = Label(play.transform, summary, 54, 37, 620, 20, 15, new Color(Paper.r, Paper.g, Paper.b, .85f));
             detail.supportRichText = false;
             play.interactable = save.Error == null;
 

@@ -83,9 +83,17 @@ namespace Eclipse.UI
         // Wind
         private float nextGust = 6f, gustAt = -99f;
 
-        // Plaque
-        private RectTransform plaque;
-        private UiDisc sealMoon;
+        // Logo
+        private const float LogoScale = 1f / 3.4f, LogoW = 1228f * LogoScale, LogoH = 489f * LogoScale, LogoTop = 40f;
+        private const float LogoBleed = 64f; // room for the paint mask's soft edge
+        private RectMask2D logoPaint;
+        private CanvasGroup logoWordmark, logoHalo, logoSealGroup;
+        private RectTransform logoSeal;
+        private RawImage logoCorona;
+        private float logoClock = -1f; // intro time; -1 until the splash has lifted
+        private bool logoStamped, logoSung, logoThudded;
+        private CanvasGroup logoSubtitle;
+        private RectTransform logoSubtitleRect;
 
         // Footer
         private RectTransform footerHints;
@@ -721,8 +729,6 @@ namespace Eclipse.UI
                 corona.rectTransform.localScale = Vector3.one * (1f + .03f * Mathf.Sin(Time.unscaledTime * 1.7f));
                 totality.color = new Color(.05f, .03f, .06f, .2f * total);
             }
-            if (sealMoon != null)
-                sealMoon.rectTransform.anchoredPosition = new Vector2(-9f, 2.5f) * (1f - cover);
         }
 
         // --- Wind --------------------------------------------------------------------------
@@ -782,37 +788,148 @@ namespace Eclipse.UI
             bool still = InkTheme.ReducedMotion;
             if (still) breath = 1.012f;
             scenery.localScale = new Vector3(breath, breath, 1f);
-            if (plaque != null)
-                plaque.localRotation = still ? Quaternion.identity
-                    : Quaternion.Euler(0, 0, Mathf.Sin(Time.unscaledTime * .8f) * .9f + TitleLeaf.Gust * 2.6f);
         }
 
         // --- Home decorations ----------------------------------------------------------------
 
-        // The name plate hanging under the logo sign, with a red hanko seal whose small sun
-        // is eclipsed in step with the sky.
-        private void DrawPlaque()
+        // The logo: the Special Edition brush wordmark in white ink straight on the scene, its
+        // "2" kept as a vermilion seal, in front of a small eclipse whose corona brightens with
+        // the sky's. The first time the menu shows, the wordmark paints in left to right and
+        // then the seal stamps down; later visits show it settled.
+        private void DrawLogo()
         {
-            plaque = Rect(page, "Eclipse plaque", 640, 210, 0, 0);
-            plaque.pivot = new Vector2(.5f, 1f);
-            var wood = (Color)new Color32(73, 43, 29, 255);
-            Box(plaque, "Cord left", -72, 0, 2, 12, Ink);
-            Box(plaque, "Cord right", 70, 0, 2, 12, Ink);
-            Box(plaque, "Plate border", -118, 11, 236, 34, Ink);
-            Box(plaque, "Plate", -115, 14, 230, 28, wood);
-            Box(plaque, "Grain", -115, 27, 230, 1, new Color32(103, 66, 43, 255));
-            var caption = Label(plaque, "P R O J E C T    E C L I P S E", -108, 14, 190, 28, 13, Paper, TextAnchor.MiddleCenter);
+            const float x = 640f - LogoW * .5f;
+            var halo = Rect(page, "Logo eclipse", 640, LogoTop + LogoH * .5f, 0, 0);
+            logoHalo = halo.gameObject.AddComponent<CanvasGroup>();
+            logoHalo.blocksRaycasts = false;
+            var shade = Soft(halo, "Shade", 1f, SoftDot(), new Color(Ink.r, Ink.g, Ink.b, .6f));
+            shade.rectTransform.sizeDelta = new Vector2(LogoW + 240f, LogoH + 130f);
+            logoCorona = Soft(halo, "Corona", 300f, Ring(), new Color(1f, .78f, .52f, 0f));
+            var moon = Centered(halo, "Moon", 166f).gameObject.AddComponent<UiDisc>();
+            moon.color = new Color32(22, 15, 13, 255);
+            moon.SetRing(new Color(.5f, .11f, .07f, .9f), 1.5f);
+            moon.raycastTarget = false;
+
+            // Crops of the two loading plates (1024 px each): the wordmark spans 618 px of the
+            // left plate and 610 of the right, rows 167..656 from the top.
+            var paint = Rect(page, "Logo wordmark", x - LogoBleed, LogoTop, LogoW + LogoBleed * 2f, LogoH);
+            logoWordmark = paint.gameObject.AddComponent<CanvasGroup>();
+            logoWordmark.blocksRaycasts = false;
+            logoPaint = paint.gameObject.AddComponent<RectMask2D>();
+            logoPaint.softness = new Vector2Int((int)LogoBleed, 0);
+            LogoLayer(paint, "Left", "ui/fullscreen/startLoading_left", LogoBleed, 618f,
+                new Rect(292f / 1024, 368f / 1024, 618f / 1024, 489f / 1024), LogoH, logoInk);
+            LogoLayer(paint, "Right", "ui/fullscreen/startLoading_right", LogoBleed + 618f * LogoScale, 610f,
+                new Rect(0, 368f / 1024, 610f / 1024, 489f / 1024), LogoH, logoInk);
+
+            // The seal sits at x 316..612, rows 272..556 of the right plate. Paper behind it
+            // shows through the carved "2".
+            const float sealW = 296f * LogoScale, sealH = 284f * LogoScale;
+            logoSeal = Rect(page, "Logo seal", 0, 0, sealW, sealH);
+            logoSeal.pivot = new Vector2(.5f, .5f);
+            logoSeal.anchoredPosition = new Vector2(x + (618f + 316f + 148f) * LogoScale, -(LogoTop + (272f - 167f + 142f) * LogoScale));
+            logoSealGroup = logoSeal.gameObject.AddComponent<CanvasGroup>();
+            logoSealGroup.blocksRaycasts = false;
+            Box(logoSeal, "Paper", 22f * LogoScale, 24f * LogoScale, 254f * LogoScale, 236f * LogoScale,
+                new Color(.97f, .91f, .79f)).GetComponent<Image>().raycastTarget = false;
+            LogoLayer(logoSeal, "Seal", "ui/fullscreen/startLoading_right", 0f, 296f,
+                new Rect(316f / 1024, 468f / 1024, 296f / 1024, 284f / 1024), sealH, logoSealInk);
+
+            logoSubtitleRect = Rect(page, "Logo subtitle", 640 - 150, LogoTop + LogoH + 10, 300, 30);
+            logoSubtitle = logoSubtitleRect.gameObject.AddComponent<CanvasGroup>();
+            logoSubtitle.blocksRaycasts = false;
+            var subtitle = Stroke(logoSubtitleRect, "Stroke", 0, 0, 300, 30, "eclipse subtitle");
+            subtitle.color = new Color(Ink.r, Ink.g, Ink.b, .85f);
+            var caption = Label(logoSubtitleRect, "P R O J E C T    E C L I P S E", 0, 0, 300, 30, 14, Paper, TextAnchor.MiddleCenter);
             caption.horizontalOverflow = HorizontalWrapMode.Overflow;
-            var seal = Centered(plaque, "Hanko", 30).gameObject.AddComponent<UiDisc>();
-            seal.color = Red;
-            seal.SetRing(new Color32(120, 24, 18, 255), 2f);
-            seal.raycastTarget = false;
-            seal.rectTransform.anchorMin = seal.rectTransform.anchorMax = new Vector2(0, 1);
-            seal.rectTransform.anchoredPosition = new Vector2(98, -28);
-            var sun = Centered(seal.rectTransform, "Seal sun", 12).gameObject.AddComponent<UiDisc>();
-            sun.color = Paper; sun.raycastTarget = false;
-            sealMoon = Centered(seal.rectTransform, "Seal moon", 12.5f).gameObject.AddComponent<UiDisc>();
-            sealMoon.color = Red; sealMoon.raycastTarget = false;
+
+            logoStamped = logoClock - LogoDelay > LogoStampAt + .4f;
+            logoSung = logoThudded = logoStamped;
+            if (!logoSung) EclipseUiAudio.PrepareLogoSounds();
+            ApplyLogo(logoClock - LogoDelay);
+        }
+
+        private void LogoLayer(RectTransform parent, string name, string resource, float x, float sourceWidth, Rect uv,
+            float height, Material material)
+        {
+            var image = Rect(parent, name, x, 0, sourceWidth * LogoScale, height).gameObject.AddComponent<RawImage>();
+            image.texture = Resources.Load<Texture2D>(resource);
+            image.uvRect = uv;
+            image.material = material;
+            image.raycastTarget = false;
+            image.enabled = image.texture != null && material != null;
+        }
+
+        // The intro holds a moment after the splash lifts, past the first frames' loading
+        // stutter, and its clock takes at most a 30 fps step per frame, so a hitch pauses the
+        // paint instead of skipping it.
+        private const float LogoDelay = 1.6f, LogoStampAt = 1.3f, LogoSubtitleAt = LogoStampAt + .22f, StampLead = .12f;
+
+        private void UpdateLogo()
+        {
+            if (logoPaint == null) return;
+            if (logoClock < 0f)
+            {
+                if (splashing) return;
+                logoClock = 0f;
+            }
+            logoClock += Mathf.Min(Time.unscaledDeltaTime, 1f / 30f);
+            ApplyLogo(logoClock - LogoDelay);
+        }
+
+        private void ApplyLogo(float t)
+        {
+            float now = Time.unscaledTime;
+            // The corona glows faintly, breathes, and flares at the sky's totality.
+            float total = Mathf.Pow(Mathf.Clamp01(eclipse), 8f);
+            logoCorona.color = new Color(1f, .78f, .52f, .26f + .62f * total + .06f * Mathf.Sin(now * .7f));
+            logoCorona.rectTransform.localScale = Vector3.one * (1f + .025f * Mathf.Sin(now * .5f));
+            float width = LogoW + LogoBleed * 2f;
+            if (InkTheme.ReducedMotion)
+            {
+                float a = Mathf.Clamp01(t / .35f);
+                logoHalo.alpha = logoWordmark.alpha = logoSealGroup.alpha = logoSubtitle.alpha = a;
+                logoPaint.padding = Vector4.zero;
+                logoSeal.localScale = Vector3.one;
+                logoStamped = true;
+                Sing(t >= .1f);
+                return;
+            }
+            logoHalo.alpha = InkTheme.OutQuad(t / .8f);
+            logoWordmark.alpha = 1f;
+            float p = InkTheme.OutCubic((t - .2f) / 1.05f);
+            logoPaint.padding = new Vector4(0f, 0f, (width + LogoBleed) * (1f - p), 0f);
+            if (!logoStamped)
+            {
+                // The seal drops from above the page and lands hard (ease-in), then kicks.
+                float s = Mathf.Clamp01((t - LogoStampAt) / .16f);
+                float scale = Mathf.Lerp(1.9f, 1f, s * s);
+                logoSeal.localScale = new Vector3(scale, scale, 1f);
+                logoSealGroup.alpha = Mathf.Clamp01(s * 2.5f);
+                // The thud's file opens with about 0.12 s of silence, so it starts that much early.
+                if (!logoThudded && t >= LogoStampAt + .16f - StampLead)
+                {
+                    logoThudded = true;
+                    EclipseUiAudio.PlayLogoStamp();
+                }
+                if (s >= 1f)
+                {
+                    logoStamped = true;
+                    UiPunch.Play(logoSeal, 1.08f);
+                }
+            }
+            // Just after the stamp, the name rises into place with a choir's "aah".
+            float u = logoSung && t < LogoSubtitleAt ? 1f : InkTheme.OutCubic((t - LogoSubtitleAt) / .6f);
+            logoSubtitle.alpha = u;
+            logoSubtitleRect.anchoredPosition = new Vector2(640 - 150, -(LogoTop + LogoH + 10) - 8f * (1f - u));
+            Sing(t >= LogoSubtitleAt);
+        }
+
+        private void Sing(bool due)
+        {
+            if (logoSung || !due) return;
+            logoSung = true;
+            EclipseUiAudio.PlayLogoChoir();
         }
 
         // A soft ink wash behind the menu keeps the labels legible on every scene, and a darker

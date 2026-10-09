@@ -99,6 +99,7 @@
     <Compile Include="Assets/Scripts/Assembly-CSharp/ModelConditions.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/GameCenterAbstract.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/RandomAreaRule.cs" />
+    <Compile Include="Assets/Scripts/Eclipse/UI/TitleScreenCommunity.cs" />
     <Compile Include="Assets/Scripts/Eclipse/Modding/ModFxSoundPlayer.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/PerkModelStruct.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/Vector2f.cs" />
@@ -209,6 +210,7 @@
     <Compile Include="Assets/Scripts/Assembly-CSharp/LocalizationManager.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/Nekki/SF2/GUI/Fight/ScreenModel.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/RemoveIntervalRule.cs" />
+    <Compile Include="Assets/Scripts/Eclipse/UI/InkSeal.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/WarriorAttributes.cs" />
     <Compile Include="Assets/Scripts/Eclipse/Modding/MoonSharpScriptRuntimeAudio.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/ModelAnimation.cs" />
@@ -306,6 +308,7 @@
     <Compile Include="Assets/Scripts/Assembly-CSharp/CrazyRule.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/IntervalAttack.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/QuestActionMapFocus.cs" />
+    <Compile Include="Assets/Scripts/Eclipse/Multiplayer/LocalVersusMenu.MovesetLabWeapons.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/RosterQuest.cs" />
     <Compile Include="Assets/Scripts/Eclipse/Multiplayer/LocalVersusMenu.Training.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/ComboCounter.cs" />
@@ -469,6 +472,7 @@
     <Compile Include="Assets/Scripts/Assembly-CSharp/Nekki/SF2/GUI/Profile/PerkCell.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/ModelController.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/UIPoligon.cs" />
+    <Compile Include="Assets/Scripts/Eclipse/Modding/ModIoClient.cs" />
     <Compile Include="Assets/Scripts/Eclipse/Input/EclipseUiInput.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/EnterScreen.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/ConditionRoundResult.cs" />
@@ -543,6 +547,7 @@
     <Compile Include="Assets/Scripts/Assembly-CSharp/PerkAction.cs" />
     <Compile Include="Assets/Scripts/Eclipse/UI/PressBounce.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/Nekki/SF2/GUI/Dialogs/DownloadingScreen.cs" />
+    <Compile Include="Assets/Scripts/Eclipse/Multiplayer/LocalVersusMenu.MovesetLabInput.cs" />
     <Compile Include="Assets/Scripts/Eclipse/UI/DialogCinematic.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/Nekki/SF2/GUI/Profile/AchievementSubItem.cs" />
     <Compile Include="Assets/Scripts/Eclipse/UI/ControlLayoutEditor.cs" />
@@ -572,6 +577,7 @@
     <Compile Include="Assets/Scripts/Assembly-CSharp/KeyboardInputPoller.cs" />
     <Compile Include="Assets/Scripts/Eclipse/Multiplayer/LocalVersusMenu.Screens.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/QuestActionEclipseMode.cs" />
+    <Compile Include="Assets/Scripts/Eclipse/UI/InkField.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/AESUtils.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/QuestActionShowForgeTutorial.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/WeaponModel.cs" />
@@ -607,6 +613,7 @@
     <Compile Include="Assets/Scripts/Eclipse/Multiplayer/Online/RollbackRunner.cs" />
     <Compile Include="Assets/Scripts/Eclipse/UI/DesktopScrollbars.cs" />
     <Compile Include="Assets/Scripts/Eclipse/Multiplayer/OnlineVersusSession.cs" />
+    <Compile Include="Assets/Scripts/Eclipse/UI/InkMotion.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/Nekki/SF2/GUI/Map/LampsPanel.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/LifeStealRule.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/AssemblyController.cs" />
@@ -628,6 +635,7 @@
     <Compile Include="Assets/Scripts/Assembly-CSharp/QuestUtils.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/QualityOption.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/AvatarRule.cs" />
+    <Compile Include="Assets/Scripts/Eclipse/UI/InkTheme.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/CounterConditions.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/QuestActionBuyItem.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/MoneyBaseValues.cs" />
@@ -654,6 +662,7 @@
     <Compile Include="Assets/Scripts/Assembly-CSharp/Nekki/SF2/GUI/BaseScrollContent.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/DescriptionRule.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/SceneTypes.cs" />
+    <Compile Include="Assets/Scripts/Eclipse/UI/InkKeyHints.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/PerkConditionRandom.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/Nekki/SF2/GUI/ResolutionImageLE.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/Nekki/SF2/GUI/Profile/TrickContent.cs" />
@@ -680,6 +689,7 @@
     <Compile Include="Assets/Scripts/Assembly-CSharp/NewsButtonMaker.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/PreInitializationModule.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/PerkConditionHealth.cs" />
+    <Compile Include="Assets/Scripts/Eclipse/UI/InkFrame.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/VideoClickHandler.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/ColorUtils.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/PricesData.cs" />
@@ -862,6 +872,7 @@
     <Compile Include="Assets/Scripts/Assembly-CSharp/ResourceManager.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/TextTimer.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/Nekki/SF2/GUI/Fight/ActivePerkItemContainer.cs" />
+    <Compile Include="Assets/Scripts/Eclipse/Multiplayer/LocalVersusMenu.MovesetLabView.cs" />
     <Compile Include="Assets/Scripts/Eclipse/UI/LanguageGlobeIcon.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/QuestActionShowCredits.cs" />
     <Compile Include="Assets/Scripts/Eclipse/Content/QuestCompatibility.cs" />
@@ -869,8 +880,8 @@
     <Compile Include="Assets/Scripts/Assembly-CSharp/Evaluation.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/PerkEventPostHit.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/UserTutorials.cs" />
-    <Compile Include="Assets/Scripts/Assembly-CSharp/SelectAnimation.cs" />
     <Compile Include="Assets/Scripts/Eclipse/Modding/MovesetBaselineReader.cs" />
+    <Compile Include="Assets/Scripts/Assembly-CSharp/SelectAnimation.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/RewardMoney.cs" />
     <Compile Include="Assets/Scripts/Assembly-CSharp/-PrivateImplementationDetails--f198b91c-f2c5-4211-a0cf-3cd1cbc59e09-/ArrayCopy512.cs" />
     <Compile Include="Assets/Scripts/Eclipse/Rendering/Interpolation/FightInterpolation.cs" />
@@ -1083,15 +1094,18 @@
   <ItemGroup>
     <None Include="Assets/Resources/textures/effects/magic/mgc_violet_flash_back_start_vfx_xml.txt" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_magic_fire_pillar_start_xml.txt" />
+    <None Include="Assets/Resources/gamedata/locations/dojo_new_year_22/params.txt" />
     <None Include="Assets/DExml/localizations/tur.xml" />
     <None Include="Assets/vanillaXml/quest_extensions/zone_1/core.xml" />
     <None Include="Assets/Resources/gamedata/quest_extensions/zone_2/story.txt" />
     <None Include="Assets/DExml/locations/chess_yard_new/chess_yard_new_params.xml" />
     <None Include="Assets/Resources/gamedata/locations/night_bridge/params.txt" />
     <None Include="Assets/vanillaXml/locations/heaven/heaven_params.xml" />
+    <None Include="Assets/Resources/gamedata/locations/ritual_vulcan_raid/params.txt" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_hw24_cards_tower_vfx_xml.txt" />
     <None Include="Assets/DExml/localizations/rom.xml" />
     <None Include="Assets/DExml/quest_extensions/zone_6/story.xml" />
+    <None Include="Assets/Resources/gamedata/locations/new_year_china_dojo/params.txt" />
     <None Include="Assets/DExml/locations/night_bridge_new/night_bridge_new_params.xml" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_magic_ice_pins_middle_2_xml.txt" />
     <None Include="Assets/DExml/quest_extensions/raid_quests.xml" />
@@ -1100,7 +1114,6 @@
     <None Include="Assets/Resources/textures/effects/magic/effect_heal_loop_xml.txt" />
     <None Include="Assets/Resources/shaders/EclipseFighterVolume.shader" />
     <None Include="Assets/Resources/gamedata/locations/swamp/params.txt" />
-    <None Include="Assets/vanillaXml/locations/dojo_summer_event/dojo_summer_event_params.xml" />
     <None Include="Assets/vanillaXml/locations/stone_dragon/stone_dragon_params.xml" />
     <None Include="Assets/Resources/gamedata/quest_extensions/dynamic_discounts.txt" />
     <None Include="Assets/vanillaXml/locations/fatum_raid/fatum_raid_params.xml" />
@@ -1169,10 +1182,12 @@
     <None Include="Assets/Resources/textures/effects/magic/mgc_saturn_smear_xml.txt" />
     <None Include="Assets/vanillaXml/locations/sakura/sakura_params.xml" />
     <None Include="Assets/DExml/locations/ruins_village_small/ruins_village_small_params.xml" />
+    <None Include="Assets/Resources/gamedata/locations/fear_raid/params.txt" />
     <None Include="Assets/DExml/list.xml" />
     <None Include="Assets/Resources/gamedata/versionController.txt" />
     <None Include="Assets/Resources/gamedata/locations/fuji/params.txt" />
     <None Include="Assets/vanillaXml/locations/ritual_battle_raid/ritual_battle_raid_params.xml" />
+    <None Include="Assets/Resources/gamedata/locations/saturn_raid/params.txt" />
     <None Include="Assets/vanillaXml/locations/stone_forest/stone_forest_params.xml" />
     <None Include="Assets/DExml/locations/dark_room/dark_room_params.xml" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_mushroom_end_xml.txt" />
@@ -1249,6 +1264,7 @@
     <None Include="Assets/vanillaXml/localizations/chn.xml" />
     <None Include="Assets/vanillaXml/locations/flooded_village/flooded_village_params.xml" />
     <None Include="Assets/vanillaXml/localization.xml" />
+    <None Include="Assets/Resources/gamedata/locations/blackness_raid/params.txt" />
     <None Include="Assets/Resources/gamedata/locations/heaven/params.txt" />
     <None Include="Assets/DExml/locations/dojo/dojo_params.xml" />
     <None Include="Assets/vanillaXml/locations/hunter_raid/hunter_raid_params.xml" />
@@ -1274,6 +1290,7 @@
     <None Include="Assets/Resources/textures/effects/magic/mgc_magic_fire_pillar_end_xml.txt" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_effect_yin_yang_damage_xml.txt" />
     <None Include="Assets/vanillaXml/animations/moves.xml" />
+    <None Include="Assets/vanillaXml/locations/hw24_waterfall_night/hw24_waterfall_night_params.xml" />
     <None Include="Assets/Resources/gamedata/locations/burning_town/params.txt" />
     <None Include="Assets/vanillaXml/quest_extensions/zone_5/story.xml" />
     <None Include="Assets/DExml/locations/freeze_raid0/freeze_raid0_params.xml" />
@@ -1281,7 +1298,6 @@
     <None Include="Assets/DExml/credits/hin.xml" />
     <None Include="Assets/Resources/textures/effects/magic/magic_volcano/mgc_volcano_start_vfx_xml.txt" />
     <None Include="Assets/vanillaXml/locations/megalith_raid/megalith_raid_params.xml" />
-    <None Include="Assets/vanillaXml/locations/new_year_dojo/new_year_dojo_params.xml" />
     <None Include="Assets/DExml/quest_extensions/zone_3/core.xml" />
     <None Include="Assets/vanillaXml/perks.xml" />
     <None Include="Assets/Resources/gamedata/locations/bamboo_grove/params.txt" />
@@ -1313,6 +1329,7 @@
     <None Include="Assets/Resources/gamedata/quest_extensions/zone_1/core.txt" />
     <None Include="Assets/DExml/quests.xml" />
     <None Include="Assets/Resources/gamedata/animations/moves.txt" />
+    <None Include="Assets/Resources/gamedata/locations/ritual_hunger_raid/params.txt" />
     <None Include="Assets/vanillaXml/tacticSettings.xml" />
     <None Include="Assets/vanillaXml/locations/war_raid/war_raid_params.xml" />
     <None Include="Assets/DExml/locations/mountains_ny_25/mountains_ny_25_params.xml" />
@@ -1336,7 +1353,7 @@
     <None Include="Assets/Resources/textures/effects/fight/effect_shield_hex_hit_xml.txt" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_magic_small_sphere_middle_xml.txt" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_wasp_speed_split_wings_start_2_xml.txt" />
-    <None Include="Assets/vanillaXml/locations/new_year_china_dojo_raid/new_year_china_dojo_raid_params.xml" />
+    <None Include="Assets/Resources/gamedata/locations/ritual_fungus_raid/params.txt" />
     <None Include="Assets/DExml/locations/emerald_forest/emerald_forest_params.xml" />
     <None Include="Assets/DExml/locations/dojo_indian_event/dojo_indian_event_params.xml" />
     <None Include="Assets/vanillaXml/locations/dojo_india25/dojo_india25_params.xml" />
@@ -1368,7 +1385,9 @@
     <None Include="Assets/DExml/credits/rus.xml" />
     <None Include="Assets/vanillaXml/quest_extensions/cashback_quests.xml" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_saturn_electricity_burst_xml.txt" />
+    <None Include="Assets/Resources/gamedata/locations/dojo_8_march/params.txt" />
     <None Include="Assets/Resources/textures/effects/magic/magic_volcano/mgc_volcano_end_vfx_xml.txt" />
+    <None Include="Assets/vanillaXml/locations/hw24_village_night/hw24_village_night_params.xml" />
     <None Include="Assets/vanillaXml/quest_extensions/ambrush.xml" />
     <None Include="Assets/DExml/localizations/rus.xml" />
     <None Include="Assets/vanillaXml/locations/dojo_8_march/dojo_8_march_params.xml" />
@@ -1407,18 +1426,20 @@
     <None Include="Assets/Resources/gamedata/locations/road/params.txt" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_magic_songofthetide_idle_xml.txt" />
     <None Include="Assets/DExml/locations/magic_rocks/magic_rocks_params.xml" />
-    <None Include="Assets/vanillaXml/locations/new_year_24_china_dojo/new_year_24_china_dojo_params.xml" />
     <None Include="Assets/DExml/locations/ritual_fungus_raid/ritual_fungus_raid_params.xml" />
     <None Include="Assets/vanillaXml/locations/hoaxen_raid/hoaxen_raid_params.xml" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_saturn_electricity_xml.txt" />
+    <None Include="Assets/Resources/gamedata/locations/war_raid/params.txt" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_magic_wind_wave_middle_xml.txt" />
     <None Include="Assets/vanillaXml/quest_extensions/events/mini_events/mini_event_ritual_fungus.xml" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_effect_arcane_martial_art_stack3_xml.txt" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_effect_energy_ray_1_xml.txt" />
+    <None Include="Assets/Resources/gamedata/locations/hw24_village_night/params.txt" />
     <None Include="Assets/DExml/quest_extensions/events/mini_events/battle_pass/ascension_reborn.xml" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_effect_energy_ray_6_xml.txt" />
     <None Include="Assets/Resources/gamedata/ComputerSettings.txt" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_magic_fireball_start_xml.txt" />
+    <None Include="Assets/Resources/gamedata/locations/gatekeeper_raid/params.txt" />
     <None Include="Assets/Resources/textures/effects/magic/effect_electricity_xml.txt" />
     <None Include="Assets/DExml/locations/saturn_raid/saturn_raid_params.xml" />
     <None Include="Assets/DExml/localizations/por.xml" />
@@ -1433,7 +1454,6 @@
     <None Include="Assets/DExml/locations/waterfall_small/waterfall_small_params.xml" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_perk_hunger_claws_start_xml.txt" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_electricity_impact_4_vfx_red_xml.txt" />
-    <None Include="Assets/Resources/gamedata/locations/lava/params.txt" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_effect_blizzard_shield_xml.txt" />
     <None Include="Assets/DExml/compat/internalSettings.xml" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_effect_bell_shield_small_xml.txt" />
@@ -1462,6 +1482,7 @@
     <None Include="Assets/DExml/localizations/hun.xml" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_effect_energy_ray_4_xml.txt" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_magic_wind_wave_start_xml.txt" />
+    <None Include="Assets/Resources/gamedata/locations/whisper_raid/params.txt" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_smoke_start_xml.txt" />
     <None Include="Assets/vanillaXml/locations/haloween_dojo/haloween_dojo_params.xml" />
     <None Include="Assets/Resources/sprites-colored.shader" />
@@ -1476,6 +1497,7 @@
     <None Include="Assets/DExml/internalSettings.xml" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_magic_flower_stun_start_2_vfx_xml.txt" />
     <None Include="Assets/DExml/locations/statue_new/statue_new_params.xml" />
+    <None Include="Assets/vanillaXml/locations/dojo_hw24/dojo_hw24_params.xml" />
     <None Include="Assets/Resources/textures/effects/magic/effect_bullet_hit_xml.txt" />
     <None Include="Assets/DExml/locations/arena_new/arena_new_params.xml" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_effect_fireball_Kanade_loop_xml.txt" />
@@ -1515,8 +1537,8 @@
     <None Include="Assets/Resources/textures/effects/magic/mgc_magic_mass_bomb_end_xml.txt" />
     <None Include="Assets/DExml/locations/whisper_raid/whisper_raid_params.xml" />
     <None Include="Assets/Resources/gamedata/localizations/rus.txt" />
+    <None Include="Assets/Resources/gamedata/locations/dojo_hw24/params.txt" />
     <None Include="Assets/vanillaXml/locations/ritual_hunger_raid/ritual_hunger_raid_params.xml" />
-    <None Include="Assets/Resources/gamedata/locations/new_year_dojo/params.xml" />
     <None Include="Assets/Resources/gamedata/locations/volcano/params.txt" />
     <None Include="Assets/DExml/locations/flowers_field/flowers_field_params.xml" />
     <None Include="Assets/DExml/credits/rom.xml" />
@@ -1526,6 +1548,7 @@
     <None Include="Assets/vanillaXml/locations/volcano/volcano_params.xml" />
     <None Include="Assets/Resources/gamedata/locations/flying_rocks_small/params.txt" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_Helios_magic_beam_xml.txt" />
+    <None Include="Assets/Resources/gamedata/locations/hunter_raid/params.txt" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_magic_wave_start_xml.txt" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_magic_lightning_arrow_end_xml.txt" />
     <None Include="Assets/vanillaXml/credits/eng.xml" />
@@ -1580,7 +1603,6 @@
     <None Include="Assets/Resources/shaders/unlit - transparent grayscale colored 1.shader" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_magic_songofthetide_hit_xml.txt" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_magic_bomb_end_xml.txt" />
-    <None Include="Assets/vanillaXml/locations/freeze_raid/freeze_raid_params.xml" />
     <None Include="Assets/Resources/textures/effects/magic/magic_windball_middle_xml.txt" />
     <None Include="Assets/vanillaXml/localizations/fra.xml" />
     <None Include="Assets/vanillaXml/locations/fear_raid/fear_raid_params.xml" />
@@ -1611,6 +1633,8 @@
     <None Include="Assets/Resources/textures/effects/magic/mgc_water_wave_end_xml.txt" />
     <None Include="Assets/DExml/locations/skyport/skyport_params.xml" />
     <None Include="Assets/Resources/gamedata/quest_extensions/battles.txt" />
+    <None Include="Assets/Resources/gamedata/locations/hunger_raid/params.txt" />
+    <None Include="Assets/Resources/gamedata/locations/dojo_cny25/params.txt" />
     <None Include="Assets/vanillaXml/locations/dojo_cny25/dojo_cny25_params.xml" />
     <None Include="Assets/Resources/gamedata/locations/skyport/params.txt" />
     <None Include="Assets/Resources/gamedata/locations/fall_event_24/params.txt" />
@@ -1657,6 +1681,7 @@
     <None Include="Assets/vanillaXml/quest_extensions/event_offers.xml" />
     <None Include="Assets/Resources/gamedata/quest_extensions/intermission/story.txt" />
     <None Include="Assets/vanillaXml/localizations/por.xml" />
+    <None Include="Assets/Resources/gamedata/locations/hw24_waterfall_night/params.txt" />
     <None Include="Assets/DExml/locations/pink_lake/pink_lake_params.xml" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_effect_lightning_end_xml.txt" />
     <None Include="Assets/DExml/locations/snowy_peak/snowy_peak_params.xml" />
@@ -1723,8 +1748,8 @@
     <None Include="Assets/Resources/textures/effects/magic/mgc_magic_lightning_arrow_start_xml.txt" />
     <None Include="Assets/DExml/locations/ritual_battle_raid/ritual_battle_raid_params.xml" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_magic_root_stun_start_2_xml.txt" />
+    <None Include="Assets/Resources/gamedata/locations/dojo_american_event/params.txt" />
     <None Include="Assets/vanillaXml/locations/saturn_raid/saturn_raid_params.xml" />
-    <None Include="Assets/Resources/gamedata/locations/new_year_24_china_dojo/params.txt" />
     <None Include="Assets/vanillaXml/locations/cave/cave_params.xml" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_war_ability_start_xml.txt" />
     <None Include="Assets/vanillaXml/quest_extensions/energy.xml" />
@@ -1749,7 +1774,6 @@
     <None Include="Assets/Resources/gamedata/locations/dojo_hw22/params.txt" />
     <None Include="Assets/Resources/gamedata/localizations/kor.txt" />
     <None Include="Assets/Resources/textures/effects/magic/mgc_soul_extract_xml.txt" />
-    <None Include="Assets/vanillaXml/locations/freeze_raid0/freeze_raid0_params.xml" />
     <None Include="Assets/Resources/gamedata/locations/ritual_battle_raid/params.txt" />
     <None Include="Assets/DExml/quest_extensions/zone_2/core.xml" />
     <None Include="Assets/DExml/localization.xml" />

@@ -30,7 +30,7 @@ namespace Eclipse.UI
         private RectTransform paperBackground, settingsBackground, footerBackground;
         private RectTransform skyLeft, skyRight;
         private Font font;
-        private Material logoInk;
+        private Material logoInk, logoSealInk;
         private readonly Dictionary<string, Texture2D> autumnTextures = new Dictionary<string, Texture2D>();
         private EventSystem ownedEventSystem;
         private GameObject previousSelection;
@@ -137,7 +137,14 @@ namespace Eclipse.UI
             font = Resources.Load<Font>("ui/fonts/AGOpusBold");
             if (font == null) font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             var inkShader = Resources.Load<Shader>("shaders/EclipseTitleInk");
-            if (inkShader != null) { logoInk = new Material(inkShader); logoInk.SetFloat("_WhiteInk", 1f); }
+            if (inkShader != null)
+            {
+                // The logo draws as two layers of the same plates: the black lettering in white
+                // ink, and the vermilion "2" seal on its own so it can stamp down after it.
+                logoInk = new Material(inkShader); logoInk.SetFloat("_WhiteInk", 1f); logoInk.SetFloat("_RedAlpha", 0f);
+                logoSealInk = new Material(inkShader); logoSealInk.SetFloat("_WhiteInk", 1f);
+                logoSealInk.SetFloat("_KeepRed", 1f); logoSealInk.SetFloat("_BlackAlpha", 0f);
+            }
             var canvas = gameObject.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 32760;
@@ -495,19 +502,7 @@ namespace Eclipse.UI
             if (release == ReleaseCheck.Result.Pending) { DrawReleaseCheck(); return; }
             if (release == ReleaseCheck.Result.Outdated) { DrawOutdated(); return; }
             Clear("Home");
-            Box(page, "Sign frame", 483, 62, 314, 148, new Color32(164, 120, 66, 255));
-            Box(page, "Sign border", 489, 68, 302, 136, Ink);
-            Box(page, "Sign wood", 494, 73, 292, 126, new Color32(73, 43, 29, 255));
-            for (int i = 1; i < 4; i++)
-                Box(page, "Wood grain", 494, 73 + i * 31, 292, 1, new Color32(103, 66, 43, 255));
-            const float logoScale = 1f / 4.5f;
-            const float logoX = 640 - (618 + 610) * logoScale / 2;
-            const float logoY = 136 - 489 * logoScale / 2;
-            Picture(page, "Logo left", "ui/fullscreen/startLoading_left", logoX, logoY, 618 * logoScale, 489 * logoScale,
-                new Rect(292f / 1024, 368f / 1024, 618f / 1024, 489f / 1024));
-            Picture(page, "Logo right", "ui/fullscreen/startLoading_right", logoX + 618 * logoScale, logoY, 610 * logoScale, 489 * logoScale,
-                new Rect(0, 368f / 1024, 610f / 1024, 489f / 1024));
-            DrawPlaque();
+            DrawLogo();
             DrawMenuWash();
             DrawSceneCycleButton();
             // One brush stroke under the labels glides to whichever entry has focus.
@@ -1139,6 +1134,7 @@ namespace Eclipse.UI
             UpdateParallax();
             UpdateGust();
             UpdateEclipse();
+            UpdateLogo();
             UpdateInputDevice();
             PollCharacterImport();
             if (GameSessionRestart.IsRestarting || splashing || ControlLayoutEditor.BlocksInput) return;
@@ -1294,6 +1290,7 @@ namespace Eclipse.UI
             foreach (var texture in autumnTextures.Values) Destroy(texture);
             foreach (var pair in filteredTextures) if (pair.Key != null) pair.Key.filterMode = pair.Value;
             if (logoInk != null) Destroy(logoInk);
+            if (logoSealInk != null) Destroy(logoSealInk);
             if (confirmUntil > 0) Screen.SetResolution(oldResolution.x, oldResolution.y, oldMode);
             IsOpen = false;
             PlayerPrefs.Save();
@@ -1378,7 +1375,7 @@ namespace Eclipse.UI
         }
 
         // Plate: a brush-stroke button for actions (ink; red wipe on focus). Primary: the page's
-        // main action (a red plate that grows and gets an ink underline on focus). Field: an
+        // main action (an ink plate with a red brush beneath it; it grows a little more on focus). Field: an
         // editable value or binding shown as text on an ink underline. Value: a "< value >"
         // picker on an underline. Tab: an ink brush plate marks the open tab; focus paints a
         // red underline, so the open tab and the focused tab never look alike.
@@ -1412,14 +1409,14 @@ namespace Eclipse.UI
                 bool primary = look == Look.Primary;
                 var plate = Stroke(rect, "Plate", 0, 0, w, h, text);
                 var caption = Label(rect, text, 30, 0, w - 60, h, h > 50 ? 28 : 22, Paper);
-                fx = EclipseUiButton.Attach(button, plate, caption, primary ? Red : Ink, primary ? RedBright : Red, Paper, Paper,
+                fx = EclipseUiButton.Attach(button, plate, caption, Ink, primary ? RedBright : Red, Paper, Paper,
                     6f, primary ? .035f : .02f);
+                // The primary keeps an ink body like every plate, so a red body always means focus;
+                // a red brush beneath it marks it as the page's main action.
                 if (primary)
                 {
-                    var underline = Stroke(rect, "Focus underline", 24, h + 1, w - 48, 7, text + " underline");
-                    underline.color = Ink;
-                    underline.Fill = 0f;
-                    fx.AddAccent(underline);
+                    var underline = Stroke(rect, "Primary underline", 24, h + 1, w - 48, 7, text + " underline");
+                    underline.color = Red;
                 }
             }
             else if (look == Look.Field)

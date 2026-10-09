@@ -15,6 +15,7 @@ namespace Eclipse.UI
         private float fromScale;
         private bool ownsGroup;
         private bool layoutDriven;
+        private bool finished;
         private Vector3 homeScale;
 
         public static void Play(RectTransform target, float delay, float duration, Vector2 offset, float fromScale = 1f)
@@ -22,9 +23,13 @@ namespace Eclipse.UI
             if (target == null) return;
             // Reduced motion: a short fade in place, no travel or scale.
             if (InkTheme.ReducedMotion) { offset = Vector2.zero; fromScale = 1f; delay *= .5f; duration = Mathf.Min(duration, .16f); }
+            // Restarting reuses the running reveal: Destroy is deferred to the end of the frame,
+            // so adding a second one now would hit DisallowMultipleComponent and return null.
             var reveal = target.GetComponent<UiReveal>();
-            if (reveal != null) reveal.Finish();
-            reveal = target.gameObject.AddComponent<UiReveal>();
+            if (reveal != null && reveal.finished) { DestroyImmediate(reveal); reveal = null; }
+            if (reveal != null) reveal.Restore();
+            else reveal = target.gameObject.AddComponent<UiReveal>();
+            reveal.elapsed = 0f;
             reveal.rect = target;
             reveal.home = target.anchoredPosition;
             reveal.homeScale = target.localScale;
@@ -35,9 +40,12 @@ namespace Eclipse.UI
             reveal.delay = delay;
             reveal.duration = Mathf.Max(.01f, duration);
             reveal.fromScale = fromScale;
-            reveal.group = target.GetComponent<CanvasGroup>();
-            reveal.ownsGroup = reveal.group == null;
-            if (reveal.ownsGroup) reveal.group = target.gameObject.AddComponent<CanvasGroup>();
+            if (reveal.group == null)
+            {
+                reveal.group = target.GetComponent<CanvasGroup>();
+                reveal.ownsGroup = reveal.group == null;
+                if (reveal.ownsGroup) reveal.group = target.gameObject.AddComponent<CanvasGroup>();
+            }
             reveal.Step(0f);
         }
 
@@ -63,14 +71,23 @@ namespace Eclipse.UI
             group.alpha = Mathf.Clamp01(t * 1.6f);
         }
 
-        private void Finish()
+        // Puts the element back where and how it was authored, keeping this reveal alive.
+        private void Restore()
         {
             if (rect != null)
             {
                 if (!layoutDriven) rect.anchoredPosition = home;
                 if (!Mathf.Approximately(fromScale, 1f)) rect.localScale = homeScale;
             }
-            if (group != null) { group.alpha = 1f; if (ownsGroup) Destroy(group); }
+            if (group != null) group.alpha = 1f;
+        }
+
+        private void Finish()
+        {
+            Restore();
+            if (group != null && ownsGroup) DestroyImmediate(group);
+            group = null;
+            finished = true;
             Destroy(this);
         }
     }
