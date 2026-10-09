@@ -70,6 +70,17 @@ namespace Eclipse.UI
         private float lastTitleActivity, showcaseBlend, selectionBreezeAt = -99f;
         private Vector2 lastTitlePointer;
         private int showcaseWakeFrame = -1;
+        // Home: paper brush marks either side of the focused entry, riding the brush highlight.
+        private InkStroke homeMarkLeft, homeMarkRight;
+        private readonly Dictionary<GameObject, float> homeWidths = new Dictionary<GameObject, float>();
+        // Options: the focused setting's explanation, shown in the strip beside Back.
+        private readonly Dictionary<GameObject, string> descriptions = new Dictionary<GameObject, string>();
+        private Text descriptionStrip;
+        private string descriptionFallback;
+        private GameObject describedFocus;
+        private float descriptionFade = 1f;
+        // "< value >" pickers: Right (or pad right) advances them like Enter.
+        private readonly HashSet<Selectable> valueButtons = new HashSet<Selectable>();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetSession()
@@ -290,7 +301,13 @@ namespace Eclipse.UI
             }
             homeStroke = null;
             homeRows.Clear();
+            homeWidths.Clear();
+            homeMarkLeft = homeMarkRight = null;
             strokeTarget = null;
+            descriptions.Clear();
+            descriptionStrip = null;
+            describedFocus = null;
+            valueButtons.Clear();
             paperBackground = Box(page, "Paper", 0, 0, 1280, 720, Paper);
             paperBackground.SetAsFirstSibling(); // behind the scenery, which outlives page rebuilds
             EnsureScenery();
@@ -499,6 +516,8 @@ namespace Eclipse.UI
             homeStroke.color = new Color(Red.r, Red.g, Red.b, .92f);
             homeStroke.raycastTarget = false;
             homeStroke.Fill = 0f;
+            homeMarkLeft = HomeMark("Focus mark left", 180f);
+            homeMarkRight = HomeMark("Focus mark right", 0f);
             // Campaign leads; Quit closes the list (and stays on Esc and the footer).
             HomeButton("CAMPAIGN", 272, 74, OpenCampaignSaves, UiSound.Open, 34);
             versusRow = HomeButton("MULTIPLAYER", 360, 56, () =>
@@ -506,7 +525,7 @@ namespace Eclipse.UI
                 Eclipse.Multiplayer.LocalVersusSession.RequestEntry();
                 BeginCampaign();
             }, UiSound.Begin, 27);
-            versusCaption = Label(page, "LOCAL AND ONLINE VERSUS", 405, 407, 470, 22, 15, SceneryAccent, TextAnchor.MiddleCenter);
+            versusCaption = Label(page, "LOCAL  AND  ONLINE  VERSUS", 405, 407, 470, 22, 14, new Color(Paper.r, Paper.g, Paper.b, .62f), TextAnchor.MiddleCenter);
             HomeButton("MODS", 440, 52, OpenMods, UiSound.Open, 25);
             HomeButton("OPTIONS", 496, 52, () => Settings("Display"), UiSound.Open, 25);
             HomeButton("QUIT", 548, 48, QuitPrompt, UiSound.Open, 23);
@@ -589,22 +608,41 @@ namespace Eclipse.UI
         private GameObject HomeButton(string text, float y, float h, Action action, UiSound sound, int size)
         {
             var button = Button(page, text, 405, y, 470, h, action, sound);
-            button.GetComponentInChildren<Text>().fontSize = size;
+            var caption = button.GetComponentInChildren<Text>();
+            caption.fontSize = size;
             homeRows[button.gameObject] = new Vector2(y, h);
+            homeWidths[button.gameObject] = Mathf.Min(caption.preferredWidth * .5f, 210f);
             return button.gameObject;
         }
 
-        // Eases the brush stroke to the focused Home entry and repaints it on each move.
+        // A short paper brush mark; the left one is turned around so both tails point outward.
+        private InkStroke HomeMark(string name, float angle)
+        {
+            var mark = Stroke(page, name, 0, 0, 34, 8, name);
+            mark.rectTransform.pivot = new Vector2(.5f, .5f);
+            mark.rectTransform.localRotation = Quaternion.Euler(0, 0, angle);
+            mark.color = new Color(Paper.r, Paper.g, Paper.b, .92f);
+            mark.Fill = 0f;
+            return mark;
+        }
+
+        private float markHalf;
+
+        // Eases the brush stroke to the focused Home entry and repaints it on each move. With
+        // nothing focused (the pointer left the menu) it stays on the entry Enter would choose.
         private void UpdateHomeStroke()
         {
             if (homeStroke == null) return;
             var focused = EventSystem.current == null ? null : EventSystem.current.currentSelectedGameObject;
+            if (focused == null && selected >= 0 && selected < controls.Count && controls[selected] != null)
+                focused = controls[selected].gameObject;
             Vector2 row;
             // Wait for the entry itself to finish its entrance before painting under it.
             if (focused == null || !homeRows.TryGetValue(focused, out row) || focused.GetComponent<UiReveal>() != null)
             {
                 strokeFill = Mathf.MoveTowards(strokeFill, 0f, Time.unscaledDeltaTime / .12f);
                 homeStroke.Fill = strokeFill;
+                if (homeMarkLeft != null) homeMarkLeft.Fill = homeMarkRight.Fill = strokeFill;
                 return;
             }
             float targetY = row.x;
@@ -622,6 +660,16 @@ namespace Eclipse.UI
             var rect = homeStroke.rectTransform;
             rect.anchoredPosition = new Vector2(385, -strokeY);
             rect.sizeDelta = new Vector2(510, Mathf.Lerp(rect.sizeDelta.y, row.y + 4f, Time.unscaledDeltaTime * 14f));
+            if (homeMarkLeft == null) return;
+            float half;
+            if (!homeWidths.TryGetValue(focused, out half)) half = 80f;
+            markHalf = Mathf.Lerp(markHalf <= 0f ? half : markHalf, half, Mathf.Min(1f, Time.unscaledDeltaTime * 16f));
+            float centerY = -(strokeY + rect.sizeDelta.y * .5f);
+            homeMarkLeft.rectTransform.anchoredPosition = new Vector2(640f - markHalf - 34f, centerY);
+            homeMarkRight.rectTransform.anchoredPosition = new Vector2(640f + markHalf + 34f, centerY);
+            // The marks follow the stroke's paint a beat behind.
+            float marks = Mathf.Clamp01((strokeFill - .35f) / .65f);
+            homeMarkLeft.Fill = homeMarkRight.Fill = 1f - (1f - marks) * (1f - marks);
         }
 
         // Entrance for everything built after the page's backgrounds. The Home menu and
@@ -673,7 +721,7 @@ namespace Eclipse.UI
         private void Settings(string tab)
         {
             Clear(tab);
-            Label(page, "Options", 76, 96, 550, 64, 46, Ink);
+            Heading("Options");
             string[] tabs = SettingsTabs;
             for (int i = 0; i < tabs.Length; i++)
             {
@@ -684,39 +732,52 @@ namespace Eclipse.UI
             if (tab == "Display")
             {
                 Row("Window mode", () => mode == FullScreenMode.Windowed ? "Windowed" : "Borderless fullscreen", 244, () =>
-                { mode = mode == FullScreenMode.Windowed ? FullScreenMode.FullScreenWindow : FullScreenMode.Windowed; });
+                { mode = mode == FullScreenMode.Windowed ? FullScreenMode.FullScreenWindow : FullScreenMode.Windowed; },
+                    "Borderless fullscreen covers the display; windowed keeps a movable window. Use Apply display to switch.");
                 Row("Resolution", () => resolution.x + " x " + resolution.y, 288, () =>
-                { resolution = resolutions[(resolutions.IndexOf(resolution) + 1) % resolutions.Count]; });
+                { resolution = resolutions[(resolutions.IndexOf(resolution) + 1) % resolutions.Count]; },
+                    "Use Apply display to try a resolution. It reverts after 15 seconds unless you keep it.");
                 Row("Frame limit", () => SF2DisplayFrameRate.MaxFrameRate == 0 ? "Display / VSync" : SF2DisplayFrameRate.MaxFrameRate + " FPS", 332, () =>
-                { SF2DisplayFrameRate.SetMaxFrameRate(Caps[(Array.IndexOf(Caps, SF2DisplayFrameRate.MaxFrameRate) + 1) % Caps.Length]); });
+                { SF2DisplayFrameRate.SetMaxFrameRate(Caps[(Array.IndexOf(Caps, SF2DisplayFrameRate.MaxFrameRate) + 1) % Caps.Length]); },
+                    "Caps the frame rate. Display / VSync follows your display. Saves immediately.");
                 Row("Frame interpolation", () => OnOff(SF2DisplayFrameRate.InterpolationEnabled), 376, () =>
-                { SF2DisplayFrameRate.ToggleInterpolation(); });
+                { SF2DisplayFrameRate.ToggleInterpolation(); },
+                    "Smooths fighters between the fight's fixed simulation steps on high refresh rate displays.");
                 Row("Motion blur", () => OnOff(SF2DisplayFrameRate.MotionBlurEnabled), 420, () =>
-                { SF2DisplayFrameRate.ToggleMotionBlur(); });
+                { SF2DisplayFrameRate.ToggleMotionBlur(); },
+                    "A light blur on fast movement. Saves immediately.");
                 Row("Anti-aliasing", () => SF2DisplayFrameRate.AntiAliasingLabel(SF2DisplayFrameRate.AntiAliasing), 464, () =>
-                { SF2DisplayFrameRate.CycleAntiAliasing(); });
+                { SF2DisplayFrameRate.CycleAntiAliasing(); },
+                    "Smooths the edges of silhouettes and limbs. Higher settings cost more GPU time.");
                 var depthOption = Row("3D fighters (experimental)", () => OnOff(SF2DisplayFrameRate.Experimental3DEnabled), 508, () =>
-                { SF2DisplayFrameRate.ToggleExperimental3D(); });
+                { SF2DisplayFrameRate.ToggleExperimental3D(); },
+                    "Experimental: draws fighters as 3D models. Expect visual problems.");
                 depthOption.GetComponentInParent<Button>().name = "Experimental 3D fighters";
                 Row("Performance overlay (F3)", () => Eclipse.Diagnostics.PerformanceOverlay.ModeLabel(Eclipse.Diagnostics.PerformanceOverlay.CurrentMode), 552, () =>
-                { Eclipse.Diagnostics.PerformanceOverlay.CycleMode(); });
-                var apply = Button(page, "Apply display", 852, 604, 340, 48, ApplyDisplay);
+                { Eclipse.Diagnostics.PerformanceOverlay.CycleMode(); },
+                    "Frame rate and frame time readouts. F3 cycles it anywhere; F4 saves a performance report while it is on.");
+                var apply = Button(page, "Apply display", 852, 604, 340, 48, ApplyDisplay, UiSound.Confirm, Look.Primary);
                 apply.interactable = !Application.isMobilePlatform;
-                Label(page, "Window and resolution changes require confirmation. Rendering options save immediately. F4 saves a performance report while the overlay is on.", 316, 604, 520, 48, 14, Ink);
+                DescriptionStrip(316, 604, 520, 48, "Window and resolution changes require confirmation. Rendering options save immediately.");
             }
             else if (tab == "Accessibility")
             {
-                OptionSlider("Critical hit pause", 260, AccessibilitySettings.CriticalPause, AccessibilitySettings.SetCriticalPause);
-                OptionSlider("Critical hit shake", 350, AccessibilitySettings.CriticalShake, AccessibilitySettings.SetCriticalShake);
+                OptionSlider("Critical hit pause", 260, AccessibilitySettings.CriticalPause, AccessibilitySettings.SetCriticalPause,
+                    "How long the fight freezes on a critical hit. 0% disables it, 100% is the original pause.");
+                OptionSlider("Critical hit shake", 350, AccessibilitySettings.CriticalShake, AccessibilitySettings.SetCriticalShake,
+                    "How hard the camera shakes on a critical hit. 0% disables it, 100% is the original shake.");
                 Row("Control size", () => GraphicsController.LargeControlsEnabled() ? "Large" : "Small", 430, () =>
                 {
                     GraphicsController.ToggleControlSize();
                     var dojo = Scene<DojoScene>.get_Current();
                     if (dojo != null) dojo.fight.RefreshControllerLayout();
-                });
+                }, "The size of the on-screen touch controls.");
                 ControlTexturePacks.Refresh();
-                Row("Control texture pack", () => ControlTexturePacks.Label, 482, ControlTexturePacks.Cycle);
-                Label(page, "Hit effects: 0% disables, 100% restores the original intensity. Control packs apply to the next fight or dojo load.", 76, 546, 1120, 40, 17, Ink);
+                Row("Control texture pack", () => ControlTexturePacks.Label, 482, ControlTexturePacks.Cycle,
+                    "Artwork for the on-screen controls. Applies to the next fight or dojo load.");
+                Row("Reduced motion", () => OnOff(InkTheme.ReducedMotion), 534, InkTheme.ToggleReducedMotion,
+                    "Menus fade instead of sliding and sweeping, and the title scene holds still.");
+                DescriptionStrip(316, 604, 876, 48, "Hit effects: 0% disables, 100% restores the original intensity.");
             }
             else if (tab == "Mod settings")
             {
@@ -724,24 +785,28 @@ namespace Eclipse.UI
             }
             else if (tab == "Audio")
             {
-                OptionSlider("Music volume", 290, SoundController.GetMusicVolume(), SoundController.SetMusicVolume);
-                OptionSlider("Sound volume", 390, SoundController.GetSoundVolume(), SoundController.SetSoundVolume);
-                Row("Intro video on entering a save", () => OnOff(IntroVideoSetting.Enabled), 462, IntroVideoSetting.Toggle);
+                OptionSlider("Music volume", 290, SoundController.GetMusicVolume(), SoundController.SetMusicVolume,
+                    "Menu and fight music. Left and right adjust it in 5% steps.");
+                OptionSlider("Sound volume", 390, SoundController.GetSoundVolume(), SoundController.SetSoundVolume,
+                    "Hits, effects and menu sounds. Left and right adjust it in 5% steps.");
+                Row("Intro video on entering a save", () => OnOff(IntroVideoSetting.Enabled), 462, IntroVideoSetting.Toggle,
+                    "Plays the intro when a save opens. Any key skips it.");
                 Row("Discord Rich Presence", () => DiscordPresence.Supported ? OnOff(DiscordPresence.Enabled) : "Windows only",
-                    514, DiscordPresence.Toggle);
-                Label(page, "The intro video can be skipped with any key. Rich Presence shows your activity while Discord is running.", 76, 566, 1120, 30, 16, Ink);
+                    514, DiscordPresence.Toggle, "Shows what you are doing in Eclipse on your Discord profile while Discord is running.");
+                DescriptionStrip(316, 604, 876, 48, "The intro video can be skipped with any key. Rich Presence shows your activity while Discord is running.");
             }
             else
             {
-                Label(page, ControllerPage ? "CONTROLLER REMAPPING" : "KEYBOARD REMAPPING", 76, 240, 1050, 30, 17, Red);
+                Label(page, ControllerPage ? "CONTROLLER REMAPPING" : "KEYBOARD REMAPPING", 76, 240, 1050, 30, 17, Ink);
                 for (int i = 0; i < (ControllerPage ? Eclipse.Input.FightControllerBindings.Defaults.Length : Eclipse.Input.FightKeyBindings.Defaults.Length); i++)
                 {
                     int action = i;
                     float x = i < 5 ? 76 : 686;
                     float y = 280 + (i % 5) * 48;
-                    Label(page, ControllerPage ? Eclipse.Input.FightControllerBindings.Names[i] : Eclipse.Input.FightKeyBindings.Names[i], x, y, 260, 34, 21, Ink);
+                    var actionName = Label(page, ControllerPage ? Eclipse.Input.FightControllerBindings.Names[i] : Eclipse.Input.FightKeyBindings.Names[i], x, y, 260, 34, 21, Ink);
                     var keyButton = Button(page, BindingLabel(i),
                         x + 270, y, 236, 38, () => BeginBinding(action), UiSound.Confirm, Look.Field);
+                    keyButton.GetComponent<EclipseUiButton>().AddTint(actionName, Ink, Red);
                     bindingLabels.Add(i, keyButton.GetComponentInChildren<Text>());
                 }
                 Text movementLabel = null;
@@ -761,7 +826,7 @@ namespace Eclipse.UI
                     if (ControllerPage) Eclipse.Input.FightControllerBindings.Reset();
                     else Eclipse.Input.FightKeyBindings.Reset();
                     RefreshBindings();
-                    if (movementLabel != null) movementLabel.text = "Left stick   >";
+                    if (movementLabel != null) movementLabel.text = "Left stick";
                     bindingStatus.text = ControllerPage ? "Default controller controls restored." : "Default keyboard controls restored.";
                 });
             }
@@ -769,19 +834,66 @@ namespace Eclipse.UI
             FocusFirst();
         }
 
-        private Text Row(string name, Func<string> value, float y, Action action)
+        // A setting: its name on the left and a "< value >" picker on the right. Focus washes
+        // the whole row in red, and its description shows in the page's description strip.
+        private Text Row(string name, Func<string> value, float y, Action action, string description = null)
         {
             float height = currentPage == "Display" ? 40f : 48f;
-            Label(page, name, 76, y, 500, height, 25, Ink);
+            var wash = RowWash(name, y, height);
+            var title = Label(page, name, 76, y, 560, height, height < 48f ? 23 : 25, Ink);
             Text label = null;
-            var button = Button(page, value() + "   >", 686, y, 506, height, () =>
+            var button = Button(page, value(), 686, y, 506, height, () =>
             {
                 action();
-                label.text = value() + "   >";
+                label.text = value();
+                UiPunch.Play(label.transform, 1.12f);
                 PlayerPrefs.Save();
-            }, UiSound.Toggle, Look.Field);
+            }, UiSound.Toggle, Look.Value);
             label = button.GetComponentInChildren<Text>();
+            button.GetComponent<EclipseUiButton>().AddAccent(wash).AddTint(title, Ink, Red);
+            if (description != null) descriptions[button.gameObject] = description;
             return label;
+        }
+
+        // The faint red brush band behind a focused settings row.
+        private InkStroke RowWash(string name, float y, float height)
+        {
+            var wash = Stroke(page, name + " focus", 56, y - 4, 1156, height + 8, name);
+            wash.color = new Color(Red.r, Red.g, Red.b, .14f);
+            wash.Taper = .35f;
+            wash.Fill = 0f;
+            return wash;
+        }
+
+        // A margin note beside Back: the focused setting's description, or the page's note.
+        private void DescriptionStrip(float x, float y, float w, float h, string fallback)
+        {
+            var mark = Stroke(page, "Note mark", x, y + h * .5f - 3f, 16, 6, "note");
+            mark.color = Red;
+            descriptionStrip = Label(page, fallback, x + 26, y, w - 26, h, 15, new Color(Ink.r, Ink.g, Ink.b, .85f));
+            descriptionStrip.supportRichText = false;
+            descriptionStrip.resizeTextForBestFit = true; descriptionStrip.resizeTextMinSize = 11; descriptionStrip.resizeTextMaxSize = 15;
+            descriptionFallback = fallback;
+            describedFocus = null;
+            descriptionFade = 1f;
+        }
+
+        private void UpdateDescription()
+        {
+            if (descriptionStrip == null) return;
+            var focused = EventSystem.current == null ? null : EventSystem.current.currentSelectedGameObject;
+            if (focused != describedFocus)
+            {
+                describedFocus = focused;
+                string text;
+                if (focused == null || !descriptions.TryGetValue(focused, out text)) text = descriptionFallback;
+                if (descriptionStrip.text != text) { descriptionStrip.text = text; descriptionFade = InkTheme.ReducedMotion ? 1f : 0f; }
+            }
+            if (descriptionFade < 1f)
+            {
+                descriptionFade = Mathf.MoveTowards(descriptionFade, 1f, Time.unscaledDeltaTime / .18f);
+                descriptionStrip.color = new Color(Ink.r, Ink.g, Ink.b, .85f * InkTheme.Smooth(descriptionFade));
+            }
         }
 
         private void BeginBinding(int action)
@@ -856,41 +968,72 @@ namespace Eclipse.UI
 
         private static readonly string[] SettingsTabs = { "Display", "Controls", "Controller", "Audio", "Accessibility", "Mod settings" };
 
-        private const int ModSettingsPerPage = 5;
         private int modSettingsPage;
 
-        // Toggles registered by enabled mods through sf2.settings.toggle, grouped
-        // by mod in load order. Values are stored per installation and save immediately.
+        // Toggles registered by enabled mods through sf2.settings.toggle, grouped under a
+        // header per mod in load order. Pages break by height, and a page that starts partway
+        // through a mod repeats its header. Values are stored per installation and save immediately.
         private void ModSettingsPage()
         {
             // Opt-in for the mod.io browser on the Mods screen; off until the player turns it on.
-            Row("Community mods (mod.io)", () => OnOff(CommunityModsSetting.Enabled), 244, CommunityModsSetting.Toggle);
+            Row("Community mods (mod.io)", () => OnOff(CommunityModsSetting.Enabled), 244, CommunityModsSetting.Toggle,
+                "Shows the mod.io community browser on the Mods screen. Off until you turn it on.");
             var toggles = Eclipse.Modding.ModVisuals.Settings;
+            const string Note = "Settings from enabled mods. Changes save immediately and apply to this installation.";
             if (toggles.Count == 0)
             {
                 Label(page, "No enabled mod provides settings. Enable a mod in the Mods menu, then Apply & Restart.", 76, 312, 1120, 48, 20, Ink);
+                DescriptionStrip(316, 604, 876, 48, Note);
                 return;
             }
-            int pages = (toggles.Count + ModSettingsPerPage - 1) / ModSettingsPerPage;
-            modSettingsPage = Mathf.Clamp(modSettingsPage, 0, pages - 1);
-            for (int i = 0; i < ModSettingsPerPage; i++)
+            const float Top = 302f, Bottom = 598f, HeaderHeight = 34f, RowStep = 52f;
+            // Lay every toggle out once to find where each page starts.
+            var starts = new List<int> { 0 };
+            float y = Top;
+            for (int i = 0; i < toggles.Count; i++)
             {
-                int index = modSettingsPage * ModSettingsPerPage + i;
-                if (index >= toggles.Count) break;
+                bool pageStart = i == starts[starts.Count - 1];
+                bool header = pageStart || toggles[i].Owner != toggles[i - 1].Owner;
+                float need = (header ? HeaderHeight : 0f) + RowStep;
+                if (!pageStart && y + need > Bottom) { starts.Add(i); y = Top; need = HeaderHeight + RowStep; }
+                y += need;
+            }
+            int pages = starts.Count;
+            modSettingsPage = Mathf.Clamp(modSettingsPage, 0, pages - 1);
+            int first = starts[modSettingsPage], last = modSettingsPage + 1 < pages ? starts[modSettingsPage + 1] : toggles.Count;
+            y = Top;
+            for (int index = first; index < last; index++)
+            {
                 var toggle = toggles[index];
                 string owner = ModDisplayName(toggle.Owner);
-                Row(owner + ": " + toggle.Label, () => OnOff(Eclipse.Modding.ModSettingsStore.Get(toggle)), 296 + i * 52,
-                    () => Eclipse.Modding.ModSettingsStore.Set(toggle, !Eclipse.Modding.ModSettingsStore.Get(toggle)));
+                if (index == first || toggle.Owner != toggles[index - 1].Owner)
+                {
+                    ModSettingsHeader(owner + (index > 0 && index == first && toggle.Owner == toggles[index - 1].Owner ? "  (continued)" : ""), y);
+                    y += HeaderHeight;
+                }
+                Row(toggle.Label, () => OnOff(Eclipse.Modding.ModSettingsStore.Get(toggle)), y,
+                    () => Eclipse.Modding.ModSettingsStore.Set(toggle, !Eclipse.Modding.ModSettingsStore.Get(toggle)),
+                    string.IsNullOrEmpty(toggle.Description) ? "From " + owner + ". Saves immediately for this installation." : toggle.Description);
+                y += RowStep;
             }
             // Paging and the note share the Back row, to its right, so nothing overlaps it.
-            string note = "Settings from enabled mods. Changes save immediately and apply to this installation.";
+            string note = Note;
             if (pages > 1)
             {
                 Button(page, "< Previous", 852, 604, 165, 48, () => { modSettingsPage = (modSettingsPage + pages - 1) % pages; Settings("Mod settings"); });
                 Button(page, "Next >", 1027, 604, 165, 48, () => { modSettingsPage = (modSettingsPage + 1) % pages; Settings("Mod settings"); });
                 note = "Page " + (modSettingsPage + 1) + " of " + pages + ".  " + note;
             }
-            Label(page, note, 316, 604, 520, 48, 14, Ink);
+            DescriptionStrip(316, 604, pages > 1 ? 520 : 876, 48, note);
+        }
+
+        // A mod's name over its settings: small ink capitals on a short brush rule.
+        private void ModSettingsHeader(string text, float y)
+        {
+            var rule = Stroke(page, text + " rule", 76, y + 25, 300, 4, text);
+            rule.color = new Color(Ink.r, Ink.g, Ink.b, .45f);
+            var label = Label(page, text.ToUpperInvariant(), 76, y, 1100, 26, 16, new Color(Ink.r, Ink.g, Ink.b, .8f));
+            label.supportRichText = false;
         }
 
         private static string ModDisplayName(Eclipse.Modding.ModId id)
@@ -909,6 +1052,7 @@ namespace Eclipse.UI
             Screen.SetResolution(resolution.x, resolution.y, mode);
             confirmUntil = Time.realtimeSinceStartup + 15;
             Clear("Confirm");
+            Heading("Display");
             Label(page, "Keep these display settings?", 100, 200, 1080, 75, 42, Ink);
             countdown = Label(page, "", 100, 300, 1080, 80, 26, Ink);
             Button(page, "Keep changes", 100, 442, 470, 64, () =>
@@ -918,7 +1062,7 @@ namespace Eclipse.UI
                 PlayerPrefs.SetInt("Eclipse.DisplayHeight", resolution.y);
                 PlayerPrefs.SetInt("Eclipse.Fullscreen", mode == FullScreenMode.Windowed ? 0 : 1);
                 PlayerPrefs.Save(); Settings("Display");
-            });
+            }, UiSound.Confirm, Look.Primary);
             Button(page, "Revert", 650, 442, 470, 64, RevertDisplay, UiSound.Back);
             FocusFirst();
         }
@@ -934,6 +1078,7 @@ namespace Eclipse.UI
         private void QuitPrompt()
         {
             Clear("Quit");
+            Heading("Quit");
             Label(page, "Leave the shadows?", 100, 220, 1080, 70, 46, Ink);
             Label(page, "Close the game and return to your desktop.", 100, 310, 1080, 50, 26, Ink);
             Button(page, "Stay", 100, 440, 470, 64, Home, UiSound.Back);
@@ -989,6 +1134,8 @@ namespace Eclipse.UI
         {
             bool showcasing = AdvanceShowcase(Time.unscaledTime, Time.unscaledDeltaTime, TitleActivity(), Application.isFocused);
             UpdateHomeStroke();
+            UpdateDescription();
+            UpdateModDetails();
             UpdateParallax();
             UpdateGust();
             UpdateEclipse();
@@ -1053,6 +1200,12 @@ namespace Eclipse.UI
                 if (Eclipse.Input.EclipseInput.GetKeyDown(KeyCode.LeftArrow) || padHorizontal < 0) slider.value -= .05f;
                 if (Eclipse.Input.EclipseInput.GetKeyDown(KeyCode.RightArrow) || padHorizontal > 0) slider.value += .05f;
             }
+            // A "< value >" picker also advances with Right, the way its arrow points.
+            if ((Eclipse.Input.EclipseInput.GetKeyDown(KeyCode.RightArrow) || padHorizontal > 0) && valueButtons.Contains(controls[selected]))
+            {
+                var picker = controls[selected] as Button;
+                if (picker != null && picker.interactable) { picker.onClick.Invoke(); return; }
+            }
             if (Eclipse.Input.EclipseInput.GetKeyDown(KeyCode.Return) || Eclipse.Input.EclipseInput.GetKeyDown(KeyCode.Space) || padConfirm)
             {
                 var button = controls[selected] as Button;
@@ -1060,15 +1213,16 @@ namespace Eclipse.UI
             }
         }
 
-        private void OptionSlider(string title, float y, float value, UnityEngine.Events.UnityAction<float> changed)
+        private void OptionSlider(string title, float y, float value, UnityEngine.Events.UnityAction<float> changed, string description = null)
         {
+            var wash = RowWash(title, y, 40f);
             var label = Label(page, title + "  " + Mathf.RoundToInt(value * 100) + "%", 76, y, 480, 40, 24, Ink);
             // A transparent hit area holding a thin ink groove, a red fill and a round knob.
             var root = Box(page, title, 580, y, 580, 40, Color.clear);
             var groove = Stretched(Box(root, "Groove", 0, 0, 0, 0, new Color(Ink.r, Ink.g, Ink.b, .22f)), 0f, 1f, 8f);
             groove.GetComponent<Image>().raycastTarget = false;
             var fillArea = Stretched(Rect(root, "Fill area", 0, 0, 0, 0), 0f, 1f, 8f);
-            var fill = Box(fillArea, "Fill", 0, 0, 0, 0, Red);
+            var fill = Box(fillArea, "Fill", 0, 0, 0, 0, Ink);
             fill.anchorMin = Vector2.zero; fill.anchorMax = new Vector2(0, 1); fill.pivot = new Vector2(0, .5f);
             fill.anchoredPosition = Vector2.zero; fill.sizeDelta = Vector2.zero;
             fill.GetComponent<Image>().raycastTarget = false;
@@ -1092,7 +1246,8 @@ namespace Eclipse.UI
                 int now = Mathf.RoundToInt(v * 20);
                 if (now != notch) { notch = now; EclipseUiAudio.Play(UiSound.Tick); }
             });
-            EclipseUiButton.Attach(slider, knob, null, Ink, Red, Paper, Paper, 0f, 0f, 0f);
+            EclipseUiButton.Attach(slider, knob, null, Ink, Red, Paper, Paper, 0f, 0f, 0f).AddAccent(wash).AddTint(label, Ink, Red);
+            if (description != null) descriptions[slider.gameObject] = description;
             controls.Add(slider);
         }
 
@@ -1186,6 +1341,32 @@ namespace Eclipse.UI
             image.enabled = image.texture != null;
         }
 
+        // The page title, painted on a red brush banner in the card's top-left corner (the same
+        // banner the multiplayer pages use). The banner fits its text; it paints in when the
+        // page opens but not when a page redraws itself or switches Options tabs.
+        private Text Heading(string text, float maxWidth = 1100f)
+        {
+            string caps = text.ToUpperInvariant();
+            var host = Rect(page, "Heading", 56, 88, 400, 72);
+            var banner = Stroke(host, "Banner", 0, 0, 400, 72, caps);
+            banner.color = Red;
+            var label = Label(host, caps, 38, 0, 320, 72, 38, Paper);
+            label.supportRichText = false;
+            label.horizontalOverflow = HorizontalWrapMode.Overflow;
+            float width = Mathf.Clamp(label.preferredWidth + 118f, 260f, maxWidth);
+            label.horizontalOverflow = HorizontalWrapMode.Wrap;
+            host.sizeDelta = new Vector2(width, 72);
+            banner.rectTransform.sizeDelta = new Vector2(width, 72);
+            label.rectTransform.sizeDelta = new Vector2(width - 84f, 72);
+            label.resizeTextForBestFit = true; label.resizeTextMinSize = 22; label.resizeTextMaxSize = 38;
+            var shade = label.gameObject.AddComponent<Shadow>();
+            shade.effectColor = new Color(Ink.r, Ink.g, Ink.b, .45f);
+            shade.effectDistance = new Vector2(1.5f, -1.5f);
+            bool tabSwitch = Array.IndexOf(SettingsTabs, currentPage) >= 0 && Array.IndexOf(SettingsTabs, previousPage) >= 0;
+            if (currentPage != previousPage && !tabSwitch) InkPaint.Play(banner, .08f, .36f);
+            return label;
+        }
+
         private Text Label(Transform parent, string text, float x, float y, float w, float h, int size, Color color,
             TextAnchor alignment = TextAnchor.MiddleLeft)
         {
@@ -1196,9 +1377,12 @@ namespace Eclipse.UI
             return label;
         }
 
-        // Plate: a brush-stroke button for actions. Field: an editable value or binding shown as
-        // text on an ink underline. Tab: a caption with a brush underline marking the open tab.
-        private enum Look { Plate, Field, Tab }
+        // Plate: a brush-stroke button for actions (ink; red wipe on focus). Primary: the page's
+        // main action (a red plate that grows and gets an ink underline on focus). Field: an
+        // editable value or binding shown as text on an ink underline. Value: a "< value >"
+        // picker on an underline. Tab: an ink brush plate marks the open tab; focus paints a
+        // red underline, so the open tab and the focused tab never look alike.
+        private enum Look { Plate, Field, Tab, Primary, Value }
 
         private Button Button(Transform parent, string text, float x, float y, float w, float h, Action action,
             UiSound sound = UiSound.Confirm, Look look = Look.Plate, bool current = false)
@@ -1217,14 +1401,26 @@ namespace Eclipse.UI
                 var outline = caption.gameObject.AddComponent<Shadow>();
                 outline.effectColor = new Color(Ink.r, Ink.g, Ink.b, .7f);
                 outline.effectDistance = new Vector2(1.5f, -2f);
+                var rim = caption.gameObject.AddComponent<Outline>();
+                rim.effectColor = new Color(Ink.r, Ink.g, Ink.b, .45f);
+                rim.effectDistance = new Vector2(1f, -1f);
                 fx = EclipseUiButton.Attach(button, null, caption, Color.clear, Color.clear,
-                    new Color(Paper.r, Paper.g, Paper.b, .88f), Paper, 0f, .07f);
+                    new Color(Paper.r, Paper.g, Paper.b, .74f), Paper, 0f, .07f);
             }
-            else if (look == Look.Plate)
+            else if (look == Look.Plate || look == Look.Primary)
             {
+                bool primary = look == Look.Primary;
                 var plate = Stroke(rect, "Plate", 0, 0, w, h, text);
                 var caption = Label(rect, text, 30, 0, w - 60, h, h > 50 ? 28 : 22, Paper);
-                fx = EclipseUiButton.Attach(button, plate, caption, Ink, Red, Paper, Paper, 6f, .02f);
+                fx = EclipseUiButton.Attach(button, plate, caption, primary ? Red : Ink, primary ? RedBright : Red, Paper, Paper,
+                    6f, primary ? .035f : .02f);
+                if (primary)
+                {
+                    var underline = Stroke(rect, "Focus underline", 24, h + 1, w - 48, 7, text + " underline");
+                    underline.color = Ink;
+                    underline.Fill = 0f;
+                    fx.AddAccent(underline);
+                }
             }
             else if (look == Look.Field)
             {
@@ -1232,12 +1428,30 @@ namespace Eclipse.UI
                 var caption = Label(rect, text, 14, 0, w - 28, h - 6, h > 40 ? 24 : 21, Ink);
                 fx = EclipseUiButton.Attach(button, line, caption, new Color(Ink.r, Ink.g, Ink.b, .35f), Red, Ink, Red, 6f, 0f, .03f);
             }
+            else if (look == Look.Value)
+            {
+                var line = Stroke(rect, "Underline", 0, h - 9, w, 7, text);
+                // Centre-pivoted so a value change can punch it about its middle.
+                var caption = Label(rect, text, 0, 0, w - 96, h - 6, h > 40 ? 24 : 21, Ink, TextAnchor.MiddleCenter);
+                caption.supportRichText = false;
+                caption.rectTransform.pivot = new Vector2(.5f, .5f);
+                caption.rectTransform.anchoredPosition = new Vector2(w * .5f, -(h - 6) * .5f);
+                var left = Label(rect, "<", 4, 0, 36, h - 6, 22, Ink, TextAnchor.MiddleCenter);
+                var right = Label(rect, ">", w - 40, 0, 36, h - 6, 22, Ink, TextAnchor.MiddleCenter);
+                fx = EclipseUiButton.Attach(button, line, caption, new Color(Ink.r, Ink.g, Ink.b, .35f), Red, Ink, Red, 0f, 0f, .03f);
+                fx.AddTint(left, new Color(Ink.r, Ink.g, Ink.b, .4f), Red).AddTint(right, new Color(Ink.r, Ink.g, Ink.b, .4f), Red);
+                valueButtons.Add(button);
+            }
             else
             {
+                if (current)
+                {
+                    var plate = Stroke(rect, "Open tab", 4, 3, w - 8, h - 14, text + " open");
+                    plate.color = Ink;
+                }
                 var line = Stroke(rect, "Underline", 14, h - 10, w - 28, 8, text);
-                var caption = Label(rect, text, 0, 0, w, h - 8, 21, current ? Red : Ink, TextAnchor.MiddleCenter);
-                fx = EclipseUiButton.Attach(button, line, caption, current ? Red : Color.clear,
-                    current ? RedBright : new Color(Ink.r, Ink.g, Ink.b, .55f), current ? Red : Ink, Red, 0f, .03f);
+                var caption = Label(rect, text, 0, 0, w, h - 8, 21, current ? Paper : Ink, TextAnchor.MiddleCenter);
+                fx = EclipseUiButton.Attach(button, line, caption, Color.clear, Red, current ? Paper : Ink, current ? Paper : Red, 0f, .03f);
             }
             if (action != null) button.onClick.AddListener(() =>
             {

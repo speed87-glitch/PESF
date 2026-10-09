@@ -46,7 +46,7 @@ post-processing are not guaranteed to match the perspective geometry. No new Lua
 camera or mesh-authoring function is exposed by this switch.
 
 Mod settings are simple on/off switches that appear under
-**Options > Mod settings**, labelled with your mod's name. Link an effect to a
+**Options > Mod settings**, grouped under a header with your mod's name. Link an effect to a
 switch and players can turn it off without disabling your mod.
 
 Things to know first:
@@ -704,11 +704,13 @@ sf2.fx.stain { id = "knockout_stain", trigger = "ko", count = 5, size_min = 20, 
 | Field | Required/default | Meaning |
 | --- | --- | --- |
 | `id` | Required | 1–64 lowercase ASCII letters, digits, `_` or `-`, unique within your mod. It keeps the player's choice stable across versions, so do not rename it. |
-| `label` | Required | 1–48 characters shown in the Options row, after your mod's name. |
-| `description` | `nil` | Up to 160 characters describing the switch. |
+| `label` | Required | 1–48 characters shown in the Options row, under your mod's name header. |
+| `description` | `nil` | Up to 160 characters describing the switch. Shown in the note beside **Back** while the switch has focus. |
 | `default` | `false` | Value used until the player changes it. |
 
-A mod may register up to 16 switches. The Options page shows six per page.
+A mod may register up to 16 switches. The Options page groups switches under
+each mod's name and shows about five per page; longer lists continue on the next
+page.
 
 ```lua
 local sf2 = require("sf2")

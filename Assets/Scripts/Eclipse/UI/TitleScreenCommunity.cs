@@ -93,7 +93,7 @@ namespace Eclipse.UI
         private void DrawCommunity()
         {
             Clear("Community mods");
-            Label(page, "Community mods", 76, 96, 700, 64, 46, Ink);
+            Heading("Community mods", 560f);
             Label(page, "Made by players, not by the Definitive Edition team.  Powered by mod.io", 640, 108, 552, 40, 17, Ink, TextAnchor.MiddleRight);
 
             // Search and sort.
@@ -176,8 +176,7 @@ namespace Eclipse.UI
         private void DrawCommunityMod(ModIoMod mod)
         {
             Clear("Community mod");
-            var title = Label(page, mod.Name, 76, 96, 1120, 64, 42, Ink); title.supportRichText = false;
-            title.resizeTextForBestFit = true; title.resizeTextMinSize = 24; title.resizeTextMaxSize = 42;
+            Heading(mod.Name);
             var thumb = Rect(page, "Logo", 76, 180, 320, 180).gameObject.AddComponent<RawImage>();
             thumb.color = new Color(Ink.r, Ink.g, Ink.b, .12f); thumb.raycastTarget = false;
             ShowThumbnail(thumb, mod.LogoUrl);

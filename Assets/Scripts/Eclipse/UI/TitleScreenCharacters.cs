@@ -98,7 +98,7 @@ namespace Eclipse.UI
         private void DrawCharacters(int focus = 0)
         {
             Clear("Characters");
-            Label(page, "Characters", 76, 96, 700, 64, 46, Ink);
+            Heading("Characters");
             Label(page, "Choose who fights as Shadow. Items, stats and moves stay the same.",
                 76, 166, 1120, 40, 19, Ink);
             var rows = CharacterLooks();
@@ -226,7 +226,7 @@ namespace Eclipse.UI
         private void DrawCharacterImportSetup(string error = null)
         {
             Clear("Import character");
-            Label(page, "Import a character", 76, 96, 1120, 64, 42, Ink);
+            Heading("Import a character");
             var file = Label(page, "Model: " + Path.GetFileName(pendingImportSource), 76, 170, 1120, 36, 20, Ink);
             file.supportRichText = false;
             Label(page, "Name", 76, 222, 700, 40, 24, Ink);
@@ -306,8 +306,7 @@ namespace Eclipse.UI
         private void DrawCharacterImporting()
         {
             Clear("Importing character");
-            var title = Label(page, "Importing " + characterJob.Title, 76, 96, 1120, 64, 42, Ink);
-            title.supportRichText = false;
+            Heading("Importing " + characterJob.Title);
             characterStatusLabel = Label(page, characterJob.Status, 76, 240, 1120, 120, 26, Ink, TextAnchor.MiddleCenter);
             characterStatusLabel.supportRichText = false;
             Label(page, "Blender converts the rig and mesh into a fighter silhouette in the background.",
@@ -452,7 +451,7 @@ namespace Eclipse.UI
         private void DrawImportActions(string error = null)
         {
             Clear("Import animations");
-            Label(page, "Animations", 76, 96, 1120, 64, 42, Ink);
+            Heading("Animations");
             Label(page, "Bind source animations to controls. They play with normal SF2 timing but deal no damage until you " +
                 "add attack timing in the mod's scripts/character.lua. Unbound animations are not imported.",
                 76, 160, 1120, 56, 17, Ink);

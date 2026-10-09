@@ -16,20 +16,21 @@ namespace Eclipse.UI
         private void DrawOutdated()
         {
             Clear("Outdated");
+            Heading("Update available");
             Label(page, "This build is out of date", 100, 200, 1080, 70, 46, Ink);
             Label(page, "Eclipse " + ReleaseCheck.Installed + " is installed, but " + ReleaseCheck.Latest +
                 " is available on the " + ReleaseCheck.Channel + " channel. Update through the Eclipse Launcher to keep playing.",
                 100, 290, 1080, 100, 26, Ink);
             if (ReleaseCheck.FromLauncher)
-                Button(page, "Update in launcher", 100, 440, 470, 64, () => QuitWith(ReleaseCheck.OutdatedExitCode));
+                Button(page, "Update in launcher", 100, 440, 470, 64, () => QuitWith(ReleaseCheck.OutdatedExitCode), UiSound.Confirm, Look.Primary);
             else if (ReleaseCheck.LauncherRoot != null)
                 Button(page, "Open launcher", 100, 440, 470, 64, () =>
                 {
                     if (ReleaseCheck.OpenLauncher()) QuitWith(0);
                     else Application.OpenURL(ReleaseCheck.ReleasesPage);
-                });
+                }, UiSound.Confirm, Look.Primary);
             else
-                Button(page, "Get the launcher", 100, 440, 470, 64, () => Application.OpenURL(ReleaseCheck.ReleasesPage));
+                Button(page, "Get the launcher", 100, 440, 470, 64, () => Application.OpenURL(ReleaseCheck.ReleasesPage), UiSound.Confirm, Look.Primary);
             Button(page, "Quit game", 650, 440, 470, 64, () => QuitWith(0), UiSound.Back);
             FocusFirst();
         }

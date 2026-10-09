@@ -42,9 +42,14 @@ rather than modifying files inside a launcher's `versions` directory: game
 updates verify and restore the published game files. Rolling back a game version
 does not roll back mod files or saves.
 
-Toggle the installed mods, then choose **Apply & Restart**. The game saves and reloads to the title screen;
-enter Campaign to load the new selection. **Back / Cancel** discards unapplied
-changes. In game, open the main **Menu** and choose **Return to Title** to reach
+The **Mods** screen lists every installed mod. A row shows a red seal while that
+mod is enabled and an empty ring while it is disabled; select a row to toggle it.
+The panel beside the list shows the focused mod's version, ID, authors,
+requirements and any problems.
+
+Toggle the installed mods, then choose **Apply & Restart**. The game saves and
+reloads to the title screen; enter Campaign to load the new selection. **Back**
+discards unapplied changes. In game, open the main **Menu** and choose **Return to Title** to reach
 the mod list again.
 
 Enabling a mod also enables its dependencies. Disabling a dependency disables

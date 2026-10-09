@@ -32,7 +32,7 @@ namespace Eclipse.UI
                 Debug.LogException(error);
                 campaignStore = null;
                 Clear("Saves");
-                Label(page, "Saves", 76, 96, 1000, 64, 42, Ink);
+                Heading("Saves");
                 var message = Label(page, "Could not open your saves.\n" + error.Message, 76, 220, 1120, 180, 23, Ink);
                 message.supportRichText = false;
                 Button(page, "Back", 76, 604, 320, 48, Home, UiSound.Back);
@@ -54,28 +54,14 @@ namespace Eclipse.UI
             int pages = Math.Max(1, (campaigns.Count + CampaignsPerPage - 1) / CampaignsPerPage);
             campaignPage = Math.Max(0, Math.Min(campaignPage, pages - 1));
             Clear("Saves");
-            Label(page, "Saves", 76, 96, 900, 64, 42, Ink);
+            Heading("Saves");
             Label(page, campaigns.Count + (campaigns.Count == 1 ? " save" : " saves"), 990, 108, 200, 40, 20, Ink, TextAnchor.MiddleRight);
             Label(page, "Choose a save to continue, or begin a new one.", 76, 166, 1120, 36, 20, Ink);
             Button focus = null;
             for (int row = 0; row < CampaignsPerPage && campaignPage * CampaignsPerPage + row < campaigns.Count; row++)
             {
                 CampaignSaveInfo save = campaigns[campaignPage * CampaignsPerPage + row];
-                float y = 218 + row * 72;
-                var play = Button(page, save.Name, 76, y, 720, 64, () => LoadCampaign(save), UiSound.Begin);
-                var name = play.GetComponentInChildren<Text>();
-                name.supportRichText = false; name.fontSize = 23;
-                name.resizeTextForBestFit = true; name.resizeTextMinSize = 17; name.resizeTextMaxSize = 23;
-                name.rectTransform.sizeDelta = new Vector2(660, 32);
-                play.GetComponent<EclipseUiButton>().Rehome();
-                string summary = save.Error == null ? CampaignSummary(save) : "Save details could not be read";
-                var detail = Label(play.transform, summary, 30, 33, 660, 23, 15,
-                    new Color(Paper.r, Paper.g, Paper.b, .85f));
-                detail.supportRichText = false;
-                play.interactable = save.Error == null;
-                var rename = Button(page, "Rename", 818, y + 12, 174, 42, () => CampaignNamePrompt(save), UiSound.Open, Look.Field);
-                rename.interactable = save.Error == null;
-                Button(page, "Delete", 1010, y + 12, 182, 42, () => DeleteCampaignPrompt(save), UiSound.Open, Look.Field);
+                var play = SaveRow(save, 218 + row * 72);
                 if (save.Id == focusId) focus = play;
             }
             if (campaigns.Count == 0)
@@ -95,21 +81,68 @@ namespace Eclipse.UI
                 Button(page, "Next", 500, 552, 210, 40, () => { campaignPage = (campaignPage + 1) % pages; DrawCampaignSaves(); }, UiSound.Tab);
             }
             Button(page, "Back", 76, 604, 320, 48, Home, UiSound.Back);
-            var create = Button(page, "New save", 742, 604, 450, 48, () => CampaignNamePrompt(null), UiSound.Open);
+            var create = Button(page, "New save", 742, 604, 450, 48, () => CampaignNamePrompt(null), UiSound.Open, Look.Primary);
             FocusFirst();
             if (focus != null && focus.interactable) focus.Select();
             else if (campaigns.Count == 0) create.Select();
         }
 
+        // One save across the card: a full-width brush bar with its name and progress, and when
+        // it was last played on the right. On the focused row, Rename and Delete take that place.
+        private Button SaveRow(CampaignSaveInfo save, float y)
+        {
+            var root = Rect(page, "Save " + save.Name, 76, y, 1120, 64);
+            var play = Button(root, save.Name, 0, 0, 1120, 64, () => LoadCampaign(save), UiSound.Begin);
+            var plate = play.transform.Find("Plate").GetComponent<InkStroke>();
+            plate.Taper = .2f;
+            var name = play.GetComponentInChildren<Text>();
+            name.supportRichText = false; name.fontSize = 23;
+            name.resizeTextForBestFit = true; name.resizeTextMinSize = 17; name.resizeTextMaxSize = 23;
+            name.rectTransform.sizeDelta = new Vector2(640, 32);
+            play.GetComponent<EclipseUiButton>().Rehome();
+            string summary = save.Error == null ? CampaignSummary(save) : "Save details could not be read";
+            var detail = Label(play.transform, summary, 30, 33, 640, 23, 15, new Color(Paper.r, Paper.g, Paper.b, .85f));
+            detail.supportRichText = false;
+            play.interactable = save.Error == null;
+
+            var info = Rect(play.transform, "Played", 700, 0, 384, 64);
+            var infoGroup = info.gameObject.AddComponent<CanvasGroup>();
+            infoGroup.blocksRaycasts = false;
+            var played = Label(info, save.LastPlayedUtc != default ? "Played " + Ago(save.LastPlayedUtc) : "Not played yet",
+                0, 9, 384, 26, 18, Paper, TextAnchor.MiddleRight);
+            played.supportRichText = false;
+            if (save.CreatedUtc != default)
+                Label(info, "Begun " + save.CreatedUtc.ToLocalTime().ToString("d MMM yyyy"), 0, 34, 384, 22, 14,
+                    new Color(Paper.r, Paper.g, Paper.b, .62f), TextAnchor.MiddleRight).supportRichText = false;
+
+            var actions = Rect(root, "Actions", 764, 0, 356, 64);
+            var actionsGroup = actions.gameObject.AddComponent<CanvasGroup>();
+            var rename = Button(actions, "Rename", 26, 12, 156, 40, () => CampaignNamePrompt(save), UiSound.Open);
+            rename.GetComponent<EclipseUiButton>().SetColors(PaperDim, Red, Ink, Paper);
+            rename.interactable = save.Error == null;
+            var delete = Button(actions, "Delete", 192, 12, 148, 40, () => DeleteCampaignPrompt(save), UiSound.Open);
+            delete.GetComponent<EclipseUiButton>().SetColors(PaperDim, Red, Ink, Paper);
+            FocusGroup.Attach(root.gameObject, actionsGroup, infoGroup, play, rename, delete);
+            return play;
+        }
+
+        private static readonly Color PaperDim = new Color32(196, 178, 146, 255);
+
+        // "just now", "3 hours ago", "yesterday", "5 days ago", then the date.
+        private static string Ago(DateTime utc)
+        {
+            var span = DateTime.UtcNow - utc;
+            if (span.TotalMinutes < 2) return "just now";
+            if (span.TotalHours < 1) return (int)span.TotalMinutes + " minutes ago";
+            if (span.TotalHours < 24) return (int)span.TotalHours == 1 ? "an hour ago" : (int)span.TotalHours + " hours ago";
+            if (span.TotalDays < 2) return "yesterday";
+            if (span.TotalDays < 14) return (int)span.TotalDays + " days ago";
+            return "on " + utc.ToLocalTime().ToString("d MMM yyyy");
+        }
+
         private string CampaignSummary(CampaignSaveInfo save)
         {
-            try
-            {
-                string summary = campaignStore.Progress(save.Id);
-                if (save.LastPlayedUtc != default)
-                    summary += "   ·   " + save.LastPlayedUtc.ToLocalTime().ToString("g");
-                return summary;
-            }
+            try { return campaignStore.Progress(save.Id); }
             catch (Exception error) { Debug.LogWarning("[Campaigns] " + error.Message); return "Progress unavailable"; }
         }
 
@@ -133,21 +166,12 @@ namespace Eclipse.UI
         {
             bool creating = save == null;
             Clear(creating ? "New save" : "Rename save");
-            Label(page, creating ? "A new journey" : "Rename save", 76, 96, 1120, 64, 42, Ink);
+            Heading(creating ? "A new journey" : "Rename save");
             Label(page, "Give your save a name.", 76, 212, 1120, 44, 24, Ink);
-            var fieldRoot = Rect(page, "Save name", 76, 282, 1120, 68);
-            var hit = fieldRoot.gameObject.AddComponent<Image>(); hit.color = new Color(Ink.r, Ink.g, Ink.b, .045f);
-            var underline = Stroke(fieldRoot, "Ink underline", 0, 60, 1120, 7, "Save name");
-            underline.color = Red;
-            underline.raycastTarget = false;
-            var value = Label(fieldRoot, "", 18, 4, 1084, 52, 28, Ink);
-            value.supportRichText = false;
-            var input = fieldRoot.gameObject.AddComponent<InputField>();
-            input.targetGraphic = hit; input.textComponent = value;
-            input.lineType = InputField.LineType.SingleLine;
+            var fieldRoot = Rect(page, "Save name", 76, 282, 1120, 64);
+            var input = InkField.Build(fieldRoot, font, 28, false, "Save name");
             input.characterLimit = CampaignSaveStore.MaximumNameLength;
             input.text = creating ? "Save " + (campaigns.Count + 1) : save.Name;
-            input.selectionColor = new Color(Red.r, Red.g, Red.b, .25f);
             campaignNameField = input;
             controls.Add(input);
             Label(page, "Up to 48 characters. Each save keeps its own progress.", 76, 376, 1120, 44, 20, Ink);
@@ -174,7 +198,7 @@ namespace Eclipse.UI
             };
             campaignNameSubmit = submit;
             // Confirm follows the field in keyboard/controller navigation.
-            Button(page, creating ? "Create & play" : "Save name", 742, 604, 450, 48, submit, creating ? UiSound.Begin : UiSound.Confirm);
+            Button(page, creating ? "Create & play" : "Save name", 742, 604, 450, 48, submit, creating ? UiSound.Begin : UiSound.Confirm, Look.Primary);
             Button(page, "Cancel", 76, 604, 320, 48, () => DrawCampaignSaves(save?.Id), UiSound.Back);
             FocusFirst();
         }
@@ -182,7 +206,7 @@ namespace Eclipse.UI
         private void DeleteCampaignPrompt(CampaignSaveInfo save)
         {
             Clear("Delete save");
-            Label(page, "End this journey?", 76, 96, 1120, 64, 42, Ink);
+            Heading("End this journey?");
             var name = Label(page, save.Name, 76, 240, 1120, 72, 32, Ink, TextAnchor.MiddleCenter);
             name.supportRichText = false;
             Label(page, "This deletes the save file and its saved progress.\nThis cannot be undone.",

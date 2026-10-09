@@ -26,7 +26,7 @@ namespace Eclipse.UI
         private sealed class Stage
         {
             public string Location;     // location id (gamedata/locations/<id>)
-            public Color32 Accent;      // secondary menu copy on this scene
+            public Color32 Accent;      // the scene's accent colour (menu copy now stays in the ink/paper palette)
             public TitleLeaf.Kind? Particles;
         }
 
@@ -54,10 +54,6 @@ namespace Eclipse.UI
         private static bool sceneChosen;
         // True while the autumn gate stands in for a stage that could not be drawn.
         private static bool gateShown;
-
-        // Opaque per-scene accents keep secondary copy distinct from the main
-        // paper-colored labels; amber leaves at the fallback gate.
-        private static Color SceneryAccent => gateShown ? new Color32(250, 171, 62, 255) : Stages[scene].Accent;
 
         private sealed class Layer { public RectTransform Rect; public Vector2 Home; public float Depth; public bool Live; }
         private readonly List<Layer> layers = new List<Layer>();
@@ -97,7 +93,7 @@ namespace Eclipse.UI
         private bool padMode;
         private Vector2 padStickLast;
 
-        private static Texture2D softDot, ringTexture;
+        private static Texture2D softDot, ringTexture, bandTexture;
 
         // Picks the scene for this launch, once. Manual cycling (CycleScene, below) reuses
         // the same persisted counter via AdvanceScene, so it also decides what the next
@@ -146,7 +142,6 @@ namespace Eclipse.UI
                 for (int i = leafLayer.childCount - 1; i >= 0; i--) Destroy(leafLayer.GetChild(i).gameObject);
                 ScatterParticles(leafLayer);
             }
-            if (versusCaption != null) versusCaption.color = SceneryAccent;
             if (SceneMusic != music) EclipseUiAudio.StartTitleMusic(SceneMusic, 1.2f);
             // Let the location and the fighter models load and draw before anything shows.
             for (int i = 0; i < 4; i++) yield return null;
@@ -754,7 +749,8 @@ namespace Eclipse.UI
         {
             float t = Time.unscaledTime;
             Vector2 target = new Vector2(Mathf.Sin(t * .11f) * .35f, Mathf.Sin(t * .083f) * .25f);
-            if (Application.isFocused && Screen.width > 0 && Screen.height > 0)
+            if (InkTheme.ReducedMotion) target = Vector2.zero;
+            else if (Application.isFocused && Screen.width > 0 && Screen.height > 0)
             {
                 Vector2 mouse = Eclipse.Input.EclipseInput.mousePosition;
                 if (mouse.x >= 0 && mouse.y >= 0 && mouse.x <= Screen.width && mouse.y <= Screen.height)
@@ -783,9 +779,12 @@ namespace Eclipse.UI
             // On opening, the scene settles in from slightly closer over about three seconds.
             float settle = 1f - Mathf.Clamp01((Time.unscaledTime - sceneOpened) / 3.2f);
             breath += .07f * settle * settle * settle;
+            bool still = InkTheme.ReducedMotion;
+            if (still) breath = 1.012f;
             scenery.localScale = new Vector3(breath, breath, 1f);
             if (plaque != null)
-                plaque.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(Time.unscaledTime * .8f) * .9f + TitleLeaf.Gust * 2.6f);
+                plaque.localRotation = still ? Quaternion.identity
+                    : Quaternion.Euler(0, 0, Mathf.Sin(Time.unscaledTime * .8f) * .9f + TitleLeaf.Gust * 2.6f);
         }
 
         // --- Home decorations ----------------------------------------------------------------
@@ -816,13 +815,39 @@ namespace Eclipse.UI
             sealMoon.color = Red; sealMoon.raycastTarget = false;
         }
 
-        // A soft ink wash behind the menu keeps the labels legible on every scene.
+        // A soft ink wash behind the menu keeps the labels legible on every scene, and a darker
+        // band with feathered edges sits right under the entries so fences, rails and branches
+        // in the stage art never run through the text.
         private void DrawMenuWash()
         {
             var wash = Rect(page, "Menu wash", 300, 232, 680, 384).gameObject.AddComponent<RawImage>();
             wash.texture = SoftDot();
-            wash.color = new Color(Ink.r, Ink.g, Ink.b, .62f);
+            wash.color = new Color(Ink.r, Ink.g, Ink.b, .5f);
             wash.raycastTarget = false;
+            var band = Rect(page, "Menu band", 370, 258, 540, 356).gameObject.AddComponent<RawImage>();
+            band.texture = Band();
+            band.color = new Color(Ink.r * .6f, Ink.g * .6f, Ink.b * .6f, .74f);
+            band.raycastTarget = false;
+        }
+
+        // Opaque in the middle, feathered toward all four edges (wider at the sides).
+        private static Texture2D Band()
+        {
+            if (bandTexture != null) return bandTexture;
+            const int width = 64, height = 64;
+            bandTexture = new Texture2D(width, height, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+            var pixels = new Color32[width * height];
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                {
+                    float u = (x + .5f) / width, v = (y + .5f) / height;
+                    float side = Mathf.Clamp01(Mathf.Min(u, 1f - u) / .3f), end = Mathf.Clamp01(Mathf.Min(v, 1f - v) / .14f);
+                    float a = side * side * (3f - 2f * side) * (end * end * (3f - 2f * end));
+                    pixels[y * width + x] = new Color(1f, 1f, 1f, a);
+                }
+            bandTexture.SetPixels32(pixels);
+            bandTexture.Apply();
+            return bandTexture;
         }
 
         // A small ink chip in the top-right corner (clear of the sign, the menu column and the
@@ -878,10 +903,9 @@ namespace Eclipse.UI
             for (int i = footerHints.childCount - 1; i >= 0; i--) Destroy(footerHints.GetChild(i).gameObject);
             bool home = currentPage == "Home";
             var hints = padMode
-                ? new[] { ("D-PAD", "Select", (Action)null), ("A", "Confirm", null), ("B", home ? "Quit" : "Back", (Action)FooterBack) }
-                : new[] { ("ARROWS", "Select", (Action)null), ("ENTER", "Confirm", null), ("ESC", home ? "Quit" : "Back", (Action)FooterBack) };
-            float x = 0f;
-            for (int i = hints.Length - 1; i >= 0; i--) x = Hint(hints[i].Item1, hints[i].Item2, hints[i].Item3, x);
+                ? new[] { new InkKeyHints.Hint("D-PAD", "Select"), new InkKeyHints.Hint("A", "Confirm"), new InkKeyHints.Hint("B", home ? "Quit" : "Back", FooterBack) }
+                : new[] { new InkKeyHints.Hint("ARROWS", "Select"), new InkKeyHints.Hint("ENTER", "Confirm"), new InkKeyHints.Hint("ESC", home ? "Quit" : "Back", FooterBack) };
+            InkKeyHints.Build(footerHints, font, hints, true);
         }
 
         private void FooterBack()
@@ -889,47 +913,6 @@ namespace Eclipse.UI
             if (leaving || rebuilding) return;
             EclipseUiAudio.Play(UiSound.Back);
             Back();
-        }
-
-        // Lays out one "[KEY] action" pair leftwards from the right edge; returns the next edge.
-        private float Hint(string key, string action, Action click, float right)
-        {
-            var actionLabel = Label(footerHints, action, 0, 12, 10, 24, 15, new Color(Paper.r, Paper.g, Paper.b, .85f));
-            actionLabel.horizontalOverflow = HorizontalWrapMode.Overflow;
-            float actionWidth = actionLabel.preferredWidth;
-            var keyLabel = Label(footerHints, key, 0, 12, 10, 24, 12, Paper, TextAnchor.MiddleCenter);
-            keyLabel.horizontalOverflow = HorizontalWrapMode.Overflow;
-            float capWidth = Mathf.Max(26f, keyLabel.preferredWidth + 14f);
-            float actionX = right - actionWidth;
-            float capX = actionX - 8f - capWidth;
-            Anchor(actionLabel.rectTransform, actionX, 12, actionWidth, 24);
-            var cap = Box(footerHints, "Key", 0, 0, 0, 0, new Color(Paper.r, Paper.g, Paper.b, .13f));
-            Anchor(cap, capX, 11, capWidth, 25);
-            cap.SetSiblingIndex(keyLabel.transform.GetSiblingIndex());
-            var edge = Box(cap, "Edge", 0, 0, 0, 0, new Color(Paper.r, Paper.g, Paper.b, .35f));
-            edge.anchorMin = Vector2.zero; edge.anchorMax = new Vector2(1, 0); edge.pivot = new Vector2(.5f, 0);
-            edge.anchoredPosition = Vector2.zero; edge.sizeDelta = new Vector2(0, 2);
-            Anchor(keyLabel.rectTransform, capX, 11, capWidth, 25);
-            if (click != null)
-            {
-                var hit = Box(footerHints, key + " button", 0, 0, 0, 0, Color.clear);
-                Anchor(hit, capX - 4, 6, right - capX + 8, 34);
-                var button = hit.gameObject.AddComponent<Button>();
-                button.targetGraphic = hit.GetComponent<Image>();
-                button.transition = Selectable.Transition.None;
-                button.navigation = new Navigation { mode = Navigation.Mode.None };
-                button.onClick.AddListener(() => click());
-            }
-            return capX - 26f;
-        }
-
-        // Positions relative to the hints group's top-right corner (x grows leftwards negative).
-        private static void Anchor(RectTransform rect, float x, float y, float w, float h)
-        {
-            rect.anchorMin = rect.anchorMax = new Vector2(1, 1);
-            rect.pivot = new Vector2(0, 1);
-            rect.anchoredPosition = new Vector2(x, -y);
-            rect.sizeDelta = new Vector2(w, h);
         }
 
         // Switches the hints between keyboard and controller wording, following the last input.
