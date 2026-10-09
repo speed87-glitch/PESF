@@ -97,7 +97,7 @@ namespace Eclipse.Multiplayer
         /// A full-screen page: a red title ribbon top left, the content area, and a footer with
         /// key hints and the status line. <paramref name="back"/> runs on Escape.
         /// </summary>
-        private RectTransform RebuildScreen(string title, string subtitle, string hints, Action back, Action<RectTransform> build)
+        private RectTransform RebuildScreen(string title, string subtitle, InkKeyHints.Hint[] hints, Action back, Action<RectTransform> build)
         {
             panel.gameObject.SetActive(true);
             liveLabels.Clear();
@@ -132,9 +132,16 @@ namespace Eclipse.Multiplayer
             var footerImage = footer.gameObject.AddComponent<Image>(); footerImage.color = FooterInk; footerImage.raycastTarget = false;
             var rule = Rect(footer, "Rule"); rule.anchorMin = new Vector2(0, 1); rule.anchorMax = new Vector2(1, 1); rule.pivot = new Vector2(.5f, 1); rule.sizeDelta = new Vector2(0, 2);
             var ruleImage = rule.gameObject.AddComponent<Image>(); ruleImage.color = Red; ruleImage.raycastTarget = false;
-            var hintLabel = Label(footer, hints ?? string.Empty, 16, new Color(Paper.r, Paper.g, Paper.b, .78f), TextAnchor.MiddleLeft);
-            hintLabel.supportRichText = true;
-            hintLabel.rectTransform.offsetMin = new Vector2(28, 0); hintLabel.rectTransform.offsetMax = new Vector2(-640, 0);
+            // Keycap hints, the same as the title's footer; Esc is also clickable.
+            var hintRow = Rect(footer, "Hints");
+            hintRow.anchorMin = new Vector2(0, 0); hintRow.anchorMax = new Vector2(0, 1); hintRow.pivot = new Vector2(0, .5f);
+            hintRow.anchoredPosition = new Vector2(28, 0); hintRow.sizeDelta = new Vector2(0, 0);
+            if (hints != null)
+            {
+                for (int i = 0; i < hints.Length; i++)
+                    if (hints[i].Key == "Esc" && back != null) hints[i].Click = () => { inputFrame = Time.frameCount; EclipseUiAudio.Play(UiSound.Back); back(); };
+                InkKeyHints.Build(hintRow, font, hints, false);
+            }
             status = Label(footer, string.Empty, 16, RedBright, TextAnchor.MiddleRight);
             status.rectTransform.offsetMin = new Vector2(520, 0); status.rectTransform.offsetMax = new Vector2(-28, 0);
 
@@ -149,7 +156,15 @@ namespace Eclipse.Multiplayer
             return content;
         }
 
-        /// <summary>Key hints in the footer's style: the key in gold, then what it does.</summary>
+        /// <summary>Footer keycap hints from key/action pairs.</summary>
+        private static InkKeyHints.Hint[] KeyHints(params string[] pairs)
+        {
+            var hints = new InkKeyHints.Hint[pairs.Length / 2];
+            for (int i = 0; i < hints.Length; i++) hints[i] = new InkKeyHints.Hint(pairs[i * 2], pairs[i * 2 + 1]);
+            return hints;
+        }
+
+        /// <summary>Key hints as rich text: the key in gold, then what it does (the Moveset Lab's dense bar).</summary>
         private static string Hints(params string[] pairs)
         {
             var text = new System.Text.StringBuilder();
@@ -185,7 +200,7 @@ namespace Eclipse.Multiplayer
             EnsureEventSystem();
             EndMovesetLab();
             page = Page.ModeSelect;
-            RebuildScreen("MULTIPLAYER", "Choose how to fight", Hints("1 2 3", "Choose", "R", "Replays", "M", "Moveset Lab", "Esc", "Title"), LocalVersusSession.ReturnToTitle, content =>
+            RebuildScreen("MULTIPLAYER", "Choose how to fight", KeyHints("1 2 3", "Choose", "R", "Replays", "M", "Moveset Lab", "Esc", "Title"), LocalVersusSession.ReturnToTitle, content =>
             {
                 var cards = Place(content, "Modes", new Vector2(.5f, .5f), new Vector2(0, 40), new Vector2(1140, 430));
                 ModeCard(cards, 0, "LOCAL VERSUS", "Two players, one screen.\nKeyboard and gamepads.", ModeArt.Local, ShowLobby);

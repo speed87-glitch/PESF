@@ -64,7 +64,7 @@ namespace Eclipse.Multiplayer
             page = Page.RoomBrowser;
             var rooms = session.Client.Rooms;
             RebuildScreen("ROOMS", rooms.Count == 0 ? "No open rooms" : rooms.Count == 1 ? "1 open room" : rooms.Count + " open rooms",
-                Hints("F5", "Refresh", "C", "Create", "Esc", "Back"), ShowOnlineHome, content =>
+                KeyHints("F5", "Refresh", "C", "Create", "Esc", "Back"), ShowOnlineHome, content =>
             {
                 passwordField = null;
                 var scroll = Place(content, "Rooms", new Vector2(.5f, 1), new Vector2(0, 0), new Vector2(1180, 420));
@@ -182,7 +182,7 @@ namespace Eclipse.Multiplayer
             string rotation = RotationLabel(room.Settings.Rotation);
             if (room.Settings.Arena != VersusRoster.RandomArena) SetBackdropArena(room.Settings.Arena);
             RebuildScreen(room.Settings.Name.ToUpperInvariant(), "Room code " + room.Code + "   ·   first to " + room.Settings.WinsRequired + "   ·   " + rotation +
-                "   ·   " + VersusRoster.ArenaName(room.Settings.Arena), Hints("L", "Loadout", "Q", "Queue", "T", "Chat", "Esc", "Leave"),
+                "   ·   " + VersusRoster.ArenaName(room.Settings.Arena), KeyHints("L", "Loadout", "Q", "Queue", "T", "Chat", "Esc", "Leave"),
                 () => RoomSession.Current?.Leave(), content =>
             {
                 // Left: who is here.

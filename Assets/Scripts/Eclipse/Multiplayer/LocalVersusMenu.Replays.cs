@@ -29,7 +29,7 @@ namespace Eclipse.Multiplayer
             if (replaySelected != null && !replayEntries.Exists(entry => entry.Path == replaySelected.Path)) replaySelected = null;
             int count = replayEntries.Count;
             RebuildScreen("REPLAYS", count == 0 ? "No replays yet" : count == 1 ? "1 saved match" : count + " saved matches",
-                Hints("Enter", "Watch", "K", "Keep", "Del", "Delete", "Tab", "Filter", "Esc", "Back"), ShowModeSelect, content =>
+                KeyHints("Enter", "Watch", "K", "Keep", "Del", "Delete", "Tab", "Filter", "Esc", "Back"), ShowModeSelect, content =>
             {
                 var tabs = Place(content, "Filters", new Vector2(0, 1), new Vector2(0, 0), new Vector2(560, 42));
                 tabs.pivot = new Vector2(0, 1);
@@ -38,7 +38,7 @@ namespace Eclipse.Multiplayer
                 {
                     var filter = (ReplayFilter)i;
                     var tab = AddButton(tabs, ReplayFilterNames[i], () => { replayFilter = filter; ShowReplays(); }, 0, UiSound.Tab);
-                    if (filter == replayFilter) tab.GetComponent<EclipseUiButton>()?.SetColors(Red, RedBright, Paper, Paper);
+                    if (filter == replayFilter) tab.GetComponent<EclipseUiButton>()?.SetColors(PaperDim, Red, Ink, Paper);
                 }
                 var scroll = Place(content, "List", new Vector2(.5f, 1), new Vector2(0, -52), new Vector2(1180, 340));
                 replayGrid = BuildScrollGrid(scroll, new Vector2(572, 150), 2);

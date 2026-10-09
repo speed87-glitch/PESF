@@ -34,7 +34,7 @@ namespace Eclipse.Multiplayer
             armoryDone = done;
             armorySlot = LoadoutSlot.Weapon;
             armoryPresets = null;
-            RebuildScreen("ARMORY", who, Hints("Tab", "Next slot", "Enter", "Equip", "R", "Random", "P", "Presets", "Esc", "Done"), FinishArmory, content =>
+            RebuildScreen("ARMORY", who, KeyHints("Tab", "Next slot", "Enter", "Equip", "R", "Random", "P", "Presets", "Esc", "Done"), FinishArmory, content =>
             {
                 // Left: the fighter on a paper card.
                 var card = Place(content, "Fighter card", new Vector2(0, .5f), new Vector2(0, 10), new Vector2(390, 500));
@@ -119,8 +119,9 @@ namespace Eclipse.Multiplayer
                 var tab = AddButton(armoryTabs, SlotTitles[(int)slot], () => SelectArmorySlot(captured), 0, UiSound.Tab);
                 if (slot == armorySlot)
                 {
+                    // The open slot is a paper plate; red stays the focus colour.
                     var fx = tab.GetComponent<EclipseUiButton>();
-                    fx?.SetColors(Red, RedBright, Paper, Paper);
+                    fx?.SetColors(PaperDim, Red, Ink, Paper);
                 }
             }
             armoryFilter.gameObject.SetActive(armorySlot == LoadoutSlot.Armor || armorySlot == LoadoutSlot.Helm);
@@ -363,15 +364,9 @@ namespace Eclipse.Multiplayer
 
         private InputField AddFilterField(RectTransform rect)
         {
-            var image = rect.gameObject.AddComponent<Image>(); image.color = new Color(Paper.r, Paper.g, Paper.b, .16f); image.raycastTarget = true;
-            var text = Label(rect, "", 18, Paper, TextAnchor.MiddleLeft); text.supportRichText = false;
-            text.rectTransform.offsetMin = new Vector2(12, 0); text.rectTransform.offsetMax = new Vector2(-12, 0);
-            var hint = Label(rect, "Search", 17, new Color(Paper.r, Paper.g, Paper.b, .45f), TextAnchor.MiddleLeft); hint.fontStyle = FontStyle.Italic;
-            hint.rectTransform.offsetMin = new Vector2(12, 0); hint.rectTransform.offsetMax = new Vector2(-12, 0);
-            var field = rect.gameObject.AddComponent<InputField>();
-            field.textComponent = text; field.placeholder = hint; field.targetGraphic = image;
-            field.lineType = InputField.LineType.SingleLine; field.characterLimit = 24;
-            field.customCaretColor = true; field.caretColor = Gold;
+            // Dark-glass variant of the ink field: paper text over a pale brush rule.
+            var field = InkField.Build(rect, font, 18, true, "Search");
+            field.characterLimit = 24;
             return field;
         }
 

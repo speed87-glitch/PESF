@@ -603,12 +603,21 @@ namespace Eclipse.Multiplayer
         {
             var row = Rect(parent, caption); row.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 46;
             var horizontal = row.gameObject.AddComponent<UnityEngine.UI.HorizontalLayoutGroup>(); horizontal.spacing = 12; horizontal.childControlWidth = horizontal.childControlHeight = true; horizontal.childForceExpandWidth = false;
+            // Focus washes the whole row and turns its caption red, as on the Options page.
+            var washRect = Rect(row, "Row focus"); washRect.SetSiblingIndex(0);
+            washRect.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().ignoreLayout = true;
+            washRect.anchorMin = Vector2.zero; washRect.anchorMax = Vector2.one; washRect.offsetMin = new Vector2(-12, -3); washRect.offsetMax = new Vector2(8, 3);
+            var wash = washRect.gameObject.AddComponent<Eclipse.UI.InkStroke>(); wash.color = new Color(Red.r, Red.g, Red.b, .14f); wash.Taper = .35f; wash.Fill = 0f; wash.raycastTarget = false; wash.Seed = caption.GetHashCode() & 0xffff;
             var left = Label(row, caption, 22, Ink, TextAnchor.MiddleLeft); left.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 1;
             UnityEngine.UI.Text valueLabel = null;
-            var button = AddButton(row, value() + "   >", () => { cycle(); valueLabel.text = value() + "   >"; }, valueWidth, Eclipse.UI.UiSound.Toggle);
+            var button = AddButton(row, Picker(value()), () => { cycle(); valueLabel.text = Picker(value()); Eclipse.UI.UiPunch.Play(valueLabel.transform, 1.1f); }, valueWidth, Eclipse.UI.UiSound.Toggle);
             valueLabel = button.GetComponentInChildren<UnityEngine.UI.Text>();
-            liveLabels.Add((valueLabel, () => value() + "   >"));
+            button.GetComponent<Eclipse.UI.EclipseUiButton>()?.AddAccent(wash).AddTint(left, Ink, Red);
+            liveLabels.Add((valueLabel, () => Picker(value())));
         }
+
+        /// <summary>A value shown as a picker: "&lt;  VALUE  &gt;".</summary>
+        private static string Picker(string value) => "<   " + value + "   >";
 
         /// <summary>A read-only caption/value row whose value refreshes every frame.</summary>
         private void AddInfo(RectTransform parent, string caption, Func<string> value)
@@ -616,7 +625,7 @@ namespace Eclipse.Multiplayer
             var row = Rect(parent, caption); row.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 46;
             var horizontal = row.gameObject.AddComponent<UnityEngine.UI.HorizontalLayoutGroup>(); horizontal.spacing = 12; horizontal.childControlWidth = horizontal.childControlHeight = true; horizontal.childForceExpandWidth = false;
             var left = Label(row, caption, 22, Ink, TextAnchor.MiddleLeft); left.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 1;
-            var right = Label(row, value(), 22, Red, TextAnchor.MiddleRight); var element = right.gameObject.AddComponent<UnityEngine.UI.LayoutElement>(); element.minWidth = element.preferredWidth = 340;
+            var right = Label(row, value(), 22, Ink, TextAnchor.MiddleRight); var element = right.gameObject.AddComponent<UnityEngine.UI.LayoutElement>(); element.minWidth = element.preferredWidth = 340;
             liveLabels.Add((right, value));
         }
 
@@ -633,17 +642,10 @@ namespace Eclipse.Multiplayer
             var horizontal = row.gameObject.AddComponent<UnityEngine.UI.HorizontalLayoutGroup>(); horizontal.spacing = 12; horizontal.childControlWidth = horizontal.childControlHeight = true; horizontal.childForceExpandWidth = false;
             var left = Label(row, caption, 22, Ink, TextAnchor.MiddleLeft); left.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().flexibleWidth = 1;
             var box = Rect(row, caption + " Field"); var element = box.gameObject.AddComponent<UnityEngine.UI.LayoutElement>(); element.minWidth = element.preferredWidth = width;
-            // Written on the paper: a faint ink wash over a ruled line, darkening while focused.
-            var image = box.gameObject.AddComponent<UnityEngine.UI.Image>(); image.color = new Color(Ink.r, Ink.g, Ink.b, .12f); image.raycastTarget = true;
-            var rule = Rect(box, "Rule"); rule.anchorMin = Vector2.zero; rule.anchorMax = new Vector2(1, 0); rule.pivot = new Vector2(.5f, 0); rule.sizeDelta = new Vector2(0, 2);
-            var ruleImage = rule.gameObject.AddComponent<UnityEngine.UI.Image>(); ruleImage.color = new Color(Ink.r, Ink.g, Ink.b, .7f); ruleImage.raycastTarget = false;
-            var text = Label(box, "", 22, Ink, TextAnchor.MiddleLeft); text.supportRichText = false; text.rectTransform.offsetMin = new Vector2(12, 0); text.rectTransform.offsetMax = new Vector2(-12, 0);
-            var hint = Label(box, placeholder ?? "", 20, new Color(Ink.r, Ink.g, Ink.b, .45f), TextAnchor.MiddleLeft); hint.fontStyle = FontStyle.Italic; hint.rectTransform.offsetMin = new Vector2(12, 0); hint.rectTransform.offsetMax = new Vector2(-12, 0);
-            var field = box.gameObject.AddComponent<UnityEngine.UI.InputField>();
-            field.textComponent = text; field.placeholder = hint; field.targetGraphic = image;
-            var tint = field.colors; tint.normalColor = new Color(1, 1, 1, .6f); tint.highlightedColor = tint.selectedColor = tint.pressedColor = Color.white; tint.fadeDuration = .08f; field.colors = tint;
-            field.customCaretColor = true; field.caretColor = Red; field.caretWidth = 2; field.selectionColor = new Color(Red.r, Red.g, Red.b, .3f);
-            field.lineType = UnityEngine.UI.InputField.LineType.SingleLine; field.characterLimit = limit;
+            // Written on the paper: a faint wash over a brush rule that paints red while focused.
+            var field = Eclipse.UI.InkField.Build(box, font, 22, false, placeholder);
+            field.characterLimit = limit;
+            UiHover.Attach(box.gameObject, () => left.color = Red, () => left.color = Ink);
             field.text = value ?? string.Empty;
             return field;
         }
@@ -661,6 +663,21 @@ namespace Eclipse.Multiplayer
                 : text == "RETURN TO TITLE" || text == "RESUME" || text == "BACK" || text == "LEAVE" || text == "CANCEL" ? Eclipse.UI.UiSound.Back : Eclipse.UI.UiSound.Confirm);
             button.onClick.AddListener(() => { fx.Punch(); Eclipse.UI.EclipseUiAudio.Play(cue); action(); });
             return button;
+        }
+
+        /// <summary>The page's main action: a red plate that, on focus, gets a paper brush underline (it reads on dark backdrops).</summary>
+        private static void MakePrimary(UnityEngine.UI.Button button)
+        {
+            var fx = button != null ? button.GetComponent<Eclipse.UI.EclipseUiButton>() : null;
+            if (fx == null) return;
+            fx.SetColors(Red, RedBright, Paper, Paper);
+            var rect = Rect(button.transform, "Focus underline");
+            rect.anchorMin = Vector2.zero; rect.anchorMax = new Vector2(1, 0); rect.pivot = new Vector2(.5f, 1);
+            rect.anchoredPosition = new Vector2(0, -2); rect.sizeDelta = new Vector2(-56, 7);
+            rect.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().ignoreLayout = true;
+            var line = rect.gameObject.AddComponent<Eclipse.UI.InkStroke>();
+            line.color = new Color(Paper.r, Paper.g, Paper.b, .95f); line.raycastTarget = false; line.Fill = 0f; line.Seed = 4242;
+            fx.AddAccent(line);
         }
 
         private UnityEngine.UI.Text Label(Transform parent, string text, int size, Color color, TextAnchor alignment)

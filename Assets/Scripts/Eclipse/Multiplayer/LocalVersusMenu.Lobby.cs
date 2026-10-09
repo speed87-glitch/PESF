@@ -20,7 +20,7 @@ namespace Eclipse.Multiplayer
             EnsureEventSystem(); ReadSettings(LocalVersusSession.Settings);
             page = Page.Lobby;
             SetBackdropArena(arena);
-            RebuildScreen("LOCAL VERSUS", "Two players, one screen", Hints("1 2", "Loadouts", "A", "Arena", "Enter", "Fight", "Esc", "Back"), ShowModeSelect, content =>
+            RebuildScreen("LOCAL VERSUS", "Two players, one screen", KeyHints("1 2", "Loadouts", "A", "Arena", "Enter", "Fight", "Esc", "Back"), ShowModeSelect, content =>
             {
                 FighterCard(content, "PLAYER 1", p1Loadout, false, () => ShowArmory("Player 1", p1Loadout, loadout =>
                 {
@@ -63,7 +63,7 @@ namespace Eclipse.Multiplayer
                 var start = Place(content, "Start", new Vector2(.5f, 0), new Vector2(0, 24), new Vector2(420, 62));
                 var startButton = AddButton(start, "FIGHT", StartLocalMatch, -1, UiSound.Begin);
                 StretchChild(start);
-                var fx = startButton.GetComponent<EclipseUiButton>(); fx?.SetColors(Red, RedBright, Paper, Paper);
+                MakePrimary(startButton);
                 var startLabel = startButton.GetComponentInChildren<Text>(); if (startLabel != null) startLabel.fontSize = 30;
                 UiReveal.Play(start, .22f, .34f, new Vector2(0, -20), .96f);
 
@@ -174,7 +174,7 @@ namespace Eclipse.Multiplayer
             splashContinue = then;
             splashEndsAt = Time.unscaledTime + SplashSeconds;
             SetBackdropArena(settings.Location);
-            RebuildScreen("VERSUS", VersusRoster.ArenaName(settings.Location) + "   ·   first to " + settings.WinsRequired, "", null, content =>
+            RebuildScreen("VERSUS", VersusRoster.ArenaName(settings.Location) + "   ·   first to " + settings.WinsRequired, null, null, content =>
             {
                 SplashSide(content, settings.PlayerOneName, settings.PlayerOneLoadout, false);
                 SplashSide(content, settings.PlayerTwoName, settings.PlayerTwoLoadout, true);
