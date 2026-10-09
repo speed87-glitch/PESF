@@ -131,6 +131,13 @@ namespace Eclipse.Diagnostics
 
 			if (!_menuOpen)
 			{
+				// The title's sparring showcase and the multiplayer menus' backdrop are fights
+				// too; F1 still opens the menu there, but the corner button stays off the menus.
+				if (Eclipse.UI.TitleScreen.IsOpen || Eclipse.Multiplayer.LocalVersusMenu.LobbyVisible)
+				{
+					GUI.matrix = oldMatrix;
+					return;
+				}
 				if (GUI.Button(new Rect(12f, 12f, 116f, 34f), "DEBUG   [F1]"))
 				{
 					_menuOpen = true;
