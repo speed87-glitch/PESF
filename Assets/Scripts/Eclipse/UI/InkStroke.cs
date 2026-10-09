@@ -12,6 +12,7 @@ namespace Eclipse.UI
         private const int Segments = 36;
         [SerializeField] private float fill = 1f;
         [SerializeField] private int seed = 7;
+        [SerializeField] private float taper = 1f;
 
         public float Fill
         {
@@ -20,6 +21,14 @@ namespace Eclipse.UI
         }
 
         public int Seed { get { return seed; } set { if (seed != value) { seed = value; SetVerticesDirty(); } } }
+
+        // How much the tail thins and dries out: 1 is the classic stroke, 0 keeps a full bar
+        // (for wide rows, where a long dry tail reads as the row being cut off).
+        public float Taper
+        {
+            get { return taper; }
+            set { value = Mathf.Clamp01(value); if (!Mathf.Approximately(value, taper)) { taper = value; SetVerticesDirty(); } }
+        }
 
         private float Noise(float x, float salt)
         {
@@ -40,12 +49,12 @@ namespace Eclipse.UI
                 float x = r.xMin + r.width * u;
                 // Loaded, rounded head; long tail that thins and dries out.
                 float head = Mathf.Sqrt(Mathf.Clamp01(u / .05f));
-                float tail = 1f - Mathf.Pow(Mathf.Clamp01((u - .72f) / .28f), 1.6f) * .78f;
+                float tail = 1f - Mathf.Pow(Mathf.Clamp01((u - .72f) / .28f), 1.6f) * .78f * taper;
                 float thickness = half * head * tail;
                 float top = mid + thickness * (.9f + .1f * Noise(u, 1f)) + Noise(u, 3f) * 1.6f;
                 float bottom = mid - thickness * (.9f + .1f * Noise(u, 2f)) + Noise(u, 4f) * 1.6f;
                 var c = color;
-                c.a *= Mathf.Lerp(1f, .55f + .25f * Noise(u, 5f), Mathf.Clamp01((u - .6f) / .4f));
+                c.a *= Mathf.Lerp(1f, .55f + .25f * Noise(u, 5f), Mathf.Clamp01((u - .6f) / .4f) * taper);
                 mesh.AddVert(new Vector3(x, top), c, Vector2.zero);
                 mesh.AddVert(new Vector3(x, bottom), c, Vector2.zero);
                 if (i > 0)

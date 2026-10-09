@@ -20,6 +20,8 @@ namespace Eclipse.UI
         public static void Play(RectTransform target, float delay, float duration, Vector2 offset, float fromScale = 1f)
         {
             if (target == null) return;
+            // Reduced motion: a short fade in place, no travel or scale.
+            if (InkTheme.ReducedMotion) { offset = Vector2.zero; fromScale = 1f; delay *= .5f; duration = Mathf.Min(duration, .16f); }
             var reveal = target.GetComponent<UiReveal>();
             if (reveal != null) reveal.Finish();
             reveal = target.gameObject.AddComponent<UiReveal>();

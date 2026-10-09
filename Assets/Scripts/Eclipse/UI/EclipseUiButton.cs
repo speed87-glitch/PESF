@@ -8,6 +8,9 @@ namespace Eclipse.UI
     // keyboard and gamepad share one highlight; leaving with the pointer releases a focus
     // the pointer gave. Colours ease instead of snapping, the label
     // slides slightly and a press gives a short squash. Runs on unscaled time.
+    // A brush-stroke body gets a focus wipe: a stroke of the highlight colour paints over
+    // it left to right on focus and lifts off again when focus leaves. Accents (extra strokes
+    // or frames) paint in with focus the same way, and tints ease other graphics with it.
     [DisallowMultipleComponent]
     public sealed class EclipseUiButton : MonoBehaviour, ISelectHandler, IDeselectHandler, IPointerEnterHandler,
         IPointerExitHandler, IPointerDownHandler, IPointerUpHandler
@@ -21,6 +24,11 @@ namespace Eclipse.UI
         private float slide, grow, squash;
         private float focus, press;
         private bool selected, pressed, hovered;
+        private InkStroke bodyStroke, wipe;
+        private InkFrame frame;
+        private readonly System.Collections.Generic.List<Graphic> accents = new System.Collections.Generic.List<Graphic>();
+        private readonly System.Collections.Generic.List<(Graphic graphic, Color normal, Color focused)> tints =
+            new System.Collections.Generic.List<(Graphic, Color, Color)>();
 
         public float Focus => focus;
 
@@ -43,8 +51,54 @@ namespace Eclipse.UI
                 rect.anchoredPosition += Vector2.Scale(shift, rect.rect.size);
             }
             if (label != null) fx.labelHome = label.rectTransform.anchoredPosition;
+            fx.bodyStroke = body as InkStroke;
+            if (fx.bodyStroke != null && fx.wipe == null) fx.wipe = CreateWipe(fx.bodyStroke, target.gameObject);
+            // A paper card is marked by a red brush drawn around it while it has focus.
+            if (body is PaperPanel && fx.frame == null) fx.AddAccent(fx.frame = InkFrame.Around(body.rectTransform, InkTheme.RedBright, 7f, 5f));
             fx.SetColors(normal, highlight, labelNormal, labelHighlight);
             return fx;
+        }
+
+        // The focus wipe sits directly above the body stroke (below the label) with the same shape.
+        private static InkStroke CreateWipe(InkStroke body, GameObject owner)
+        {
+            var rect = new GameObject("Focus wipe", typeof(RectTransform)).GetComponent<RectTransform>();
+            var source = body.rectTransform;
+            if (body.gameObject == owner)
+            {
+                rect.SetParent(source, false);
+                rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one; rect.pivot = new Vector2(.5f, .5f);
+                rect.offsetMin = rect.offsetMax = Vector2.zero;
+                rect.SetSiblingIndex(0);
+            }
+            else
+            {
+                rect.SetParent(source.parent, false);
+                rect.anchorMin = source.anchorMin; rect.anchorMax = source.anchorMax; rect.pivot = source.pivot;
+                rect.anchoredPosition = source.anchoredPosition; rect.sizeDelta = source.sizeDelta;
+                rect.SetSiblingIndex(source.GetSiblingIndex() + 1);
+            }
+            rect.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
+            var wipe = rect.gameObject.AddComponent<InkStroke>();
+            wipe.raycastTarget = false;
+            wipe.Seed = body.Seed;
+            wipe.Taper = body.Taper;
+            wipe.Fill = 0f;
+            return wipe;
+        }
+
+        // A stroke or frame that paints in while the control has focus.
+        public EclipseUiButton AddAccent(Graphic accent)
+        {
+            if (accent != null && !accents.Contains(accent)) { accents.Add(accent); Apply(); }
+            return this;
+        }
+
+        // Another graphic (a row label, say) that eases between two colours with focus.
+        public EclipseUiButton AddTint(Graphic graphic, Color normal, Color focused)
+        {
+            if (graphic != null) { tints.Add((graphic, normal, focused)); Apply(); }
+            return this;
         }
 
         public void SetColors(Color normal, Color highlight, Color labelNormal, Color labelHighlight)
@@ -100,19 +154,38 @@ namespace Eclipse.UI
         {
             if (target == null) return;
             float t = focus * focus * (3f - 2f * focus);
+            bool reduced = InkTheme.ReducedMotion;
+            // The wipe sweeps with an ease-out so the brush lands quickly and settles.
+            float sweep = reduced ? (focus > 0f ? 1f : 0f) : 1f - (1f - focus) * (1f - focus);
             bool enabled = target.IsInteractable();
             if (body != null)
             {
-                var color = Color.Lerp(normal, highlight, t);
+                var color = wipe != null ? normal : Color.Lerp(normal, highlight, t);
                 if (!enabled) color.a *= .42f;
                 body.color = color;
             }
+            if (wipe != null)
+            {
+                wipe.Seed = bodyStroke.Seed;
+                wipe.Taper = bodyStroke.Taper;
+                wipe.color = highlight;
+                wipe.Fill = enabled ? sweep : 0f;
+            }
+            for (int i = 0; i < accents.Count; i++)
+            {
+                var accent = accents[i];
+                if (accent is InkStroke stroke) stroke.Fill = sweep;
+                else if (accent is InkFrame frame) frame.Fill = sweep;
+                else if (accent != null) { var c = accent.color; c.a = t; accent.color = c; }
+            }
+            for (int i = 0; i < tints.Count; i++)
+                if (tints[i].graphic != null) tints[i].graphic.color = Color.Lerp(tints[i].normal, tints[i].focused, t);
             if (label != null)
             {
                 label.color = Color.Lerp(labelNormal, labelHighlight, t);
-                label.rectTransform.anchoredPosition = labelHome + new Vector2(slide * t, 0f);
+                label.rectTransform.anchoredPosition = labelHome + new Vector2(reduced ? 0f : slide * t, 0f);
             }
-            float scale = 1f + grow * t - squash * press;
+            float scale = 1f + grow * t - (reduced ? 0f : squash * press);
             transform.localScale = new Vector3(scale, scale, 1f);
         }
     }
